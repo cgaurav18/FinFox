@@ -13,7 +13,8 @@ object Routes {
     const val ACCOUNT_DETAIL = "account-detail/{id}"
     const val SCHEDULES = "schedules"
     const val SCHEDULE_EDIT = "schedule-edit?id={id}"
-    const val SCHEDULE_DETAIL = "schedule/{id}"
+    /** pay=true opens the "Mark as paid" confirmation (used by the notification action). */
+    const val SCHEDULE_DETAIL = "schedule/{id}?pay={pay}"
     const val PEOPLE = "people"
     const val LOAN_EDIT = "loan-edit?id={id}&direction={direction}&person={person}"
     const val LOAN_DETAIL = "loan/{id}"
@@ -26,6 +27,13 @@ object Routes {
     const val CATEGORIES = "categories"
     const val CHANGE_PIN = "change-pin"
     const val BACKUP = "backup"
+    const val GOOGLE_ACCOUNT = "google-account"
+    const val DRIVE = "drive"
+    const val BACKUP_HISTORY = "backup-history"
+    const val RESTORE = "restore?fileId={fileId}&uri={uri}"
+    const val WIDGETS = "widgets"
+    const val NOTIFICATIONS = "notifications"
+    const val NOTIFICATION_PREFS = "notification-settings"
 
     fun txns(type: String? = null) = "transactions" + (type?.let { "?type=$it" } ?: "")
     fun txnEdit(id: Long? = null, type: String? = null) = "txn-edit?id=${id ?: -1}" + (type?.let { "&type=$it" } ?: "")
@@ -40,6 +48,8 @@ object Routes {
     fun person(id: Long) = "person/$id"
     fun goalEdit(id: Long? = null) = "goal-edit?id=${id ?: -1}"
     fun goalDetail(id: Long) = "goal/$id"
+    fun restoreDrive(fileId: String) = "restore?fileId=" + android.net.Uri.encode(fileId)
+    fun restoreFile(uri: String) = "restore?uri=" + android.net.Uri.encode(uri)
 
     val topLevel = setOf(HOME, TXNS, REPORTS, MORE)
 }

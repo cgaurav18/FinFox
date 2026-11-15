@@ -13,6 +13,14 @@ import com.mymoney.app.notifications.Notifier
 import com.mymoney.app.security.AppLockManager
 import com.mymoney.app.security.KeystoreSecretBox
 import com.mymoney.app.security.PinManager
+import com.mymoney.app.security.SecretBox
+import com.mymoney.app.auth.FirebaseGoogleAuth
+import com.mymoney.app.auth.GoogleAuthGateway
+import com.mymoney.app.backup.BackupKeyStore
+import com.mymoney.app.cloud.DriveAuthorizer
+import com.mymoney.app.cloud.DriveRemote
+import com.mymoney.app.cloud.PlayServicesDriveAuthorizer
+import com.mymoney.app.cloud.RetrofitDriveRemote
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -35,7 +43,16 @@ object AppModule {
         PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("security") }
 
     @Provides @Singleton
-    fun pinManager(store: DataStore<Preferences>): PinManager = PinManager(store, KeystoreSecretBox())
+    fun secretBox(): SecretBox = KeystoreSecretBox()
+
+    @Provides @Singleton
+    fun pinManager(store: DataStore<Preferences>, box: SecretBox): PinManager = PinManager(store, box)
+
+    @Provides @Singleton
+    fun backupKeyStore(store: DataStore<Preferences>, box: SecretBox): BackupKeyStore = BackupKeyStore(store, box)
+
+    @Provides @Singleton
+    fun driveRemote(): DriveRemote = RetrofitDriveRemote()
 
     @Provides @Singleton
     fun appLock(): AppLockManager = AppLockManager()
@@ -45,4 +62,6 @@ object AppModule {
 @InstallIn(SingletonComponent::class)
 abstract class BindingsModule {
     @Binds abstract fun notifier(impl: AndroidNotifier): Notifier
+    @Binds abstract fun googleAuth(impl: FirebaseGoogleAuth): GoogleAuthGateway
+    @Binds abstract fun driveAuthorizer(impl: PlayServicesDriveAuthorizer): DriveAuthorizer
 }

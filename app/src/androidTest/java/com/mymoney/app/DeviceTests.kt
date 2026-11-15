@@ -43,7 +43,20 @@ class DatabaseDeviceTest {
             .addMigrations(*Migrations.ALL).build().apply { openHelper.writableDatabase; close() }
     }
 
-    @Test fun balancesSurviveReopenOnDevice() = runBlocking {
+    @Test fun migrate1To2KeepsFinancialData() {
+        helper.createDatabase("migration-1-2", 1).apply {
+            execSQL("INSERT INTO categories (id, name, type, iconKey, colorArgb, isSystem, archived, sortOrder) VALUES (1, 'Food', 'EXPENSE', 'food', 0, 1, 0, 1)")
+            execSQL("INSERT INTO accounts (id, type, name, openingBalanceMinor, currency, colorArgb, iconKey, archived, createdAt, updatedAt) VALUES (1, 'BANK', 'HDFC', 100000, 'INR', 0, 'bank', 0, 0, 0)")
+            execSQL("INSERT INTO transactions (id, type, amountMinor, accountId, categoryId, dateMillis, tags, createdAt, updatedAt) VALUES (1, 'EXPENSE', 25000, 1, 1, 0, '', 0, 0)")
+            close()
+        }
+        helper.runMigrationsAndValidate("migration-1-2", 2, true, Migrations.MIGRATION_1_2).close()
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), AppDatabase::class.java, "migration-1-2").addMigrations(*Migrations.ALL).build()
+        runBlocking { assertThat(db.accountDao().getWithBalance(1)!!.balanceMinor).isEqualTo(75_000) }
+        db.close()
+    }
+
+    @Test fun balancesSurviveReopenOnDevice(): Unit = runBlocking {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         ctx.deleteDatabase("device-persist.db")
         fun open() = Room.databaseBuilder(ctx, AppDatabase::class.java, "device-persist.db").build()

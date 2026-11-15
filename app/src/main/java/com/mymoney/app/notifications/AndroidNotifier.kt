@@ -1,77 +1,129 @@
 package com.mymoney.app.notifications
 
-import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.os.Build
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
-import androidx.core.content.ContextCompat
-import com.mymoney.app.MainActivity
-import com.mymoney.app.R
 import com.mymoney.app.core.Dates
 import com.mymoney.app.core.Money
-import dagger.hilt.android.qualifiers.ApplicationContext
+import com.mymoney.app.data.db.NotificationCategory
+import com.mymoney.app.data.db.ReminderRefType
+import com.mymoney.app.data.db.ScheduleCategory
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** Builds user-facing notification content; [NotificationDispatcher] decides whether/how it's shown. */
 @Singleton
-class AndroidNotifier @Inject constructor(@ApplicationContext private val context: Context) : Notifier {
+class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDispatcher) : Notifier {
     companion object {
-        const val CHANNEL_REMINDERS = "reminders"
-        const val CHANNEL_BUDGET = "budget"
-        const val EXTRA_ROUTE = "route"
+        /** Kept for callers that only need the route extra name. */
+        const val EXTRA_ROUTE = NotificationDispatcher.EXTRA_ROUTE
+        const val ID_SCHEDULE = 100_000
+        const val ID_LOAN = 200_000
+        const val ID_BUDGET = 300_000
+        const val ID_GOAL = 400_000
+        const val ID_CARD = 500_000
+        const val ID_BACKUP = 600_000
+        const val ID_REPAYMENT = 700_000
+    }
 
-        fun createChannels(context: Context) {
-            val nm = context.getSystemService(NotificationManager::class.java)
-            nm.createNotificationChannel(NotificationChannel(CHANNEL_REMINDERS, context.getString(R.string.channel_reminders), NotificationManager.IMPORTANCE_DEFAULT).apply { description = "Upcoming and overdue scheduled payments and loan due dates" })
-            nm.createNotificationChannel(NotificationChannel(CHANNEL_BUDGET, context.getString(R.string.channel_budget), NotificationManager.IMPORTANCE_DEFAULT).apply { description = "Alerts at 80%, 90% and 100% of a budget" })
+    private fun m(v: Long, c: String) = Money.format(v, c)
+    private fun day(d: LocalDate) = Dates.formatDay(d)
+
+    override suspend fun budgetAlert(budgetId: Long, categoryName: String, percent: Int, spentMinor: Long, limitMinor: Long, currency: String) {
+        val title = when {
+            percent > 100 -> "$categoryName budget exceeded"
+            percent == 100 -> "$categoryName budget reached"
+            else -> "$categoryName budget at $percent%"
         }
+        val over = spentMinor - limitMinor
+        val text = if (over > 0) "Spent ${m(spentMinor, currency)} of ${m(limitMinor, currency)} — ${m(over, currency)} over budget this month."
+        else "Spent ${m(spentMinor, currency)} of ${m(limitMinor, currency)} this month. ${m(limitMinor - spentMinor, currency)} left."
+        dispatcher.post(
+            NotificationSpec((ID_BUDGET + budgetId).toInt(), NotificationCategory.BUDGET, title, text,
+                title, "Open My Money to see your budget.", "budgets", ReminderRefType.BUDGET.name, budgetId)
+        )
     }
 
-    private fun canNotify(): Boolean {
-        if (Build.VERSION.SDK_INT >= 33 &&
-            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
-        ) return false
-        return NotificationManagerCompat.from(context).areNotificationsEnabled()
-    }
-
-    private fun post(id: Int, channel: String, title: String, text: String, route: String) {
-        if (!canNotify()) return
-        val intent = Intent(context, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(EXTRA_ROUTE, route)
-        }
-        val pi = PendingIntent.getActivity(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
-        val n = NotificationCompat.Builder(context, channel)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setColor(0xFF5B21B6.toInt())
-            .setContentTitle(title)
-            .setContentText(text)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
-            .setAutoCancel(true)
-            .setContentIntent(pi)
-            .build()
-        try { NotificationManagerCompat.from(context).notify(id, n) } catch (_: SecurityException) { }
-    }
-
-    override fun budgetAlert(budgetId: Long, categoryName: String, percent: Int, spentMinor: Long, limitMinor: Long, currency: String) {
-        val title = if (percent >= 100) "$categoryName budget exceeded" else "$categoryName budget at $percent%"
-        post((300_000 + budgetId).toInt(), CHANNEL_BUDGET, title, "Spent ${Money.format(spentMinor, currency)} of ${Money.format(limitMinor, currency)} this month.", "budgets")
-    }
-
-    override fun scheduleReminder(scheduleId: Long, title: String, amountMinor: Long, due: LocalDate, overdue: Boolean, currency: String) {
+    override suspend fun scheduleReminder(scheduleId: Long, title: String, amountMinor: Long, due: LocalDate, overdue: Boolean, currency: String, category: ScheduleCategory) {
         val head = if (overdue) "Overdue: $title" else "$title ${Dates.dueLabel(due).replaceFirstChar { it.lowercase() }}"
-        post((100_000 + scheduleId).toInt(), CHANNEL_REMINDERS, head, "${Money.format(amountMinor, currency)} due on ${Dates.formatDay(due)}. Tap to mark it as paid.", "schedule/$scheduleId")
+        val kind = when (category) {
+            ScheduleCategory.EMI -> "EMI"; ScheduleCategory.SIP -> "SIP"; ScheduleCategory.CREDIT_CARD_BILL -> "Card bill"
+            ScheduleCategory.SUBSCRIPTION -> "Subscription renewal"; ScheduleCategory.RENT -> "Rent"; ScheduleCategory.ELECTRICITY -> "Electricity bill"
+            else -> "Payment"
+        }
+        dispatcher.post(
+            NotificationSpec(
+                (ID_SCHEDULE + scheduleId).toInt(), NotificationCategory.PAYMENT, head,
+                "$kind of ${m(amountMinor, currency)} due on ${day(due)}. Nothing is paid automatically — mark it as paid once you've paid.",
+                if (overdue) "Overdue $kind" else "$kind ${Dates.dueLabel(due).replaceFirstChar { it.lowercase() }}",
+                "Open My Money to see the details.",
+                "schedule/$scheduleId", ReminderRefType.SCHEDULE.name, scheduleId,
+                listOf(NotificationAction.MARK_PAID, NotificationAction.REMIND_LATER, NotificationAction.DISMISS),
+            )
+        )
     }
 
-    override fun loanReminder(loanId: Long, person: String, outstandingMinor: Long, gave: Boolean, due: LocalDate, currency: String) {
-        val head = if (gave) "$person owes you ${Money.format(outstandingMinor, currency)}" else "You owe $person ${Money.format(outstandingMinor, currency)}"
-        post((200_000 + loanId).toInt(), CHANNEL_REMINDERS, head, "${Dates.dueLabel(due)} (${Dates.formatDay(due)}).", "loan/$loanId")
+    override suspend fun loanReminder(loanId: Long, person: String, outstandingMinor: Long, gave: Boolean, due: LocalDate, currency: String) {
+        val overdue = due.isBefore(Dates.today())
+        val head = when {
+            gave && overdue -> "$person's repayment is overdue"
+            gave -> "Money expected from $person"
+            overdue -> "Overdue: you owe $person"
+            else -> "Repayment due to $person"
+        }
+        val text = (if (gave) "$person owes you ${m(outstandingMinor, currency)}" else "You owe $person ${m(outstandingMinor, currency)}") +
+            ". ${Dates.dueLabel(due)} (${day(due)})."
+        dispatcher.post(
+            NotificationSpec((ID_LOAN + loanId).toInt(), NotificationCategory.LOAN, head, text,
+                if (gave) "Money expected" else "Repayment due", "Open My Money to see the details.",
+                "loan/$loanId", ReminderRefType.LOAN.name, loanId,
+                listOf(NotificationAction.VIEW, NotificationAction.REMIND_LATER, NotificationAction.DISMISS))
+        )
+    }
+
+    override suspend fun cardDueReminder(accountId: Long, cardName: String, outstandingMinor: Long, due: LocalDate, currency: String) {
+        val title = "$cardName bill ${Dates.dueLabel(due).replaceFirstChar { it.lowercase() }}"
+        dispatcher.post(
+            NotificationSpec((ID_CARD + accountId).toInt(), NotificationCategory.PAYMENT, title,
+                "Outstanding ${m(outstandingMinor, currency)}, due ${day(due)}. Record the bill payment as a transfer to the card.",
+                "Credit card bill due", "Open My Money to see the details.",
+                "account-detail/$accountId", ReminderRefType.CARD.name, accountId,
+                listOf(NotificationAction.VIEW, NotificationAction.REMIND_LATER, NotificationAction.DISMISS))
+        )
+    }
+
+    override suspend fun repaymentRecorded(loanId: Long, person: String, amountMinor: Long, outstandingMinor: Long, gave: Boolean, currency: String) {
+        val title = if (outstandingMinor > 0) "Partial repayment recorded" else "Fully repaid"
+        val text = (if (gave) "$person repaid ${m(amountMinor, currency)}." else "You repaid ${m(amountMinor, currency)} to $person.") +
+            if (outstandingMinor > 0) " ${m(outstandingMinor, currency)} still outstanding." else " Nothing is outstanding."
+        dispatcher.post(
+            NotificationSpec((ID_REPAYMENT + loanId).toInt(), NotificationCategory.LOAN, title, text, title,
+                "Open My Money to see the details.", "loan/$loanId", ReminderRefType.LOAN.name, loanId)
+        )
+    }
+
+    override suspend fun goalAlert(goalId: Long, name: String, alert: GoalAlert, savedMinor: Long, targetMinor: Long, targetDate: LocalDate?, currency: String) {
+        val (title, text) = when (alert) {
+            GoalAlert.COMPLETED -> "Goal completed: $name 🎉" to "You've saved ${m(savedMinor, currency)} of ${m(targetMinor, currency)}."
+            GoalAlert.TARGET_SOON -> "$name target date is near" to
+                "${m((targetMinor - savedMinor).coerceAtLeast(0), currency)} still to save by ${targetDate?.let(::day) ?: "the target date"}."
+            else -> "$name is ${alert.percent}% funded" to "Saved ${m(savedMinor, currency)} of ${m(targetMinor, currency)}. Keep going!"
+        }
+        dispatcher.post(
+            NotificationSpec((ID_GOAL + goalId).toInt(), NotificationCategory.GOAL, title, text, "Savings goal update",
+                "Open My Money to see your progress.", "goal/$goalId", ReminderRefType.GOAL.name, goalId)
+        )
+    }
+
+    override suspend fun backupEvent(event: BackupEvent, detail: String?) {
+        val (title, text) = when (event) {
+            BackupEvent.SUCCESS -> "Backup complete" to (detail ?: "Your data was backed up to Google Drive.")
+            BackupEvent.FAILED -> "Backup failed" to (detail ?: "The Google Drive backup couldn't be completed.")
+            BackupEvent.RESTORED -> "Restore completed" to (detail ?: "Your data was restored.")
+            BackupEvent.AUTH_EXPIRED -> "Google Drive authorization expired" to "Open My Money and reconnect Google Drive to keep backing up."
+        }
+        dispatcher.post(
+            NotificationSpec(ID_BACKUP + event.ordinal, NotificationCategory.BACKUP, title, text, title, text, "backup",
+                actions = if (event == BackupEvent.AUTH_EXPIRED || event == BackupEvent.FAILED) listOf(NotificationAction.RECONNECT, NotificationAction.DISMISS)
+                else listOf(NotificationAction.VIEW, NotificationAction.DISMISS))
+        )
     }
 }

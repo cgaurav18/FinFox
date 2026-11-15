@@ -87,6 +87,13 @@ import com.mymoney.app.ui.settings.CategoriesScreen
 import com.mymoney.app.ui.settings.ChangePinScreen
 import com.mymoney.app.ui.settings.SettingsScreen
 import com.mymoney.app.ui.theme.MyMoneyTheme
+import com.mymoney.app.ui.account.GoogleAccountScreen
+import com.mymoney.app.ui.cloud.BackupHistoryScreen
+import com.mymoney.app.ui.cloud.DriveConnectionScreen
+import com.mymoney.app.ui.cloud.RestoreScreen
+import com.mymoney.app.ui.notifications.NotificationCenterScreen
+import com.mymoney.app.ui.notifications.NotificationPreferencesScreen
+import com.mymoney.app.ui.widgets.WidgetGalleryScreen
 import com.mymoney.app.ui.transactions.AddTransactionScreen
 import com.mymoney.app.ui.transactions.TransactionDetailScreen
 import com.mymoney.app.ui.transactions.TransactionsScreen
@@ -194,7 +201,7 @@ private fun AppNavHost(nav: NavHostController) {
         composable(Routes.ACCOUNT_DETAIL, arguments = listOf(idArg())) { AccountDetailScreen(nav) }
         composable(Routes.SCHEDULES) { SchedulesScreen(nav) }
         composable(Routes.SCHEDULE_EDIT, arguments = listOf(idArg())) { AddScheduleScreen(nav) }
-        composable(Routes.SCHEDULE_DETAIL, arguments = listOf(idArg())) { ScheduleDetailScreen(nav) }
+        composable(Routes.SCHEDULE_DETAIL, arguments = listOf(idArg(), navArgument("pay") { type = NavType.BoolType; defaultValue = false })) { ScheduleDetailScreen(nav) }
         composable(Routes.PEOPLE) { PeopleScreen(nav) }
         composable(Routes.LOAN_EDIT, arguments = listOf(idArg(), strArg("direction"), strArg("person"))) { AddLoanScreen(nav) }
         composable(Routes.LOAN_DETAIL, arguments = listOf(idArg())) { LoanDetailScreen(nav) }
@@ -207,5 +214,12 @@ private fun AppNavHost(nav: NavHostController) {
         composable(Routes.CATEGORIES) { CategoriesScreen(nav) }
         composable(Routes.CHANGE_PIN) { ChangePinScreen(nav) }
         composable(Routes.BACKUP) { BackupScreen(nav) }
+        composable(Routes.GOOGLE_ACCOUNT) { GoogleAccountScreen(nav) }
+        composable(Routes.DRIVE) { DriveConnectionScreen(nav) }
+        composable(Routes.BACKUP_HISTORY) { BackupHistoryScreen(nav) }
+        composable(Routes.RESTORE, arguments = listOf(strArg("fileId"), strArg("uri"))) { RestoreScreen(nav) }
+        composable(Routes.WIDGETS) { WidgetGalleryScreen(nav) }
+        composable(Routes.NOTIFICATIONS) { NotificationCenterScreen(nav) }
+        composable(Routes.NOTIFICATION_PREFS) { NotificationPreferencesScreen(nav) }
     }
 }

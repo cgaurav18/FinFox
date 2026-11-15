@@ -40,6 +40,10 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -82,6 +86,9 @@ import java.time.LocalDate
 fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
     val s by vm.state.collectAsStateWithLifecycle()
     val hidden by vm.balanceHidden.collectAsStateWithLifecycle()
+    val profile by vm.profile.collectAsStateWithLifecycle()
+    val unreadVm: com.mymoney.app.ui.notifications.UnreadCountViewModel = hiltViewModel()
+    val unread by unreadVm.unread.collectAsStateWithLifecycle()
     if (s.loading) { LoadingState(); return }
     val fin = FinanceTheme.colors
     LazyColumn(
@@ -89,7 +96,19 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Header(s.name) { nav.navigate(Routes.SETTINGS) } }
+        item { Header(s.name, profile.photoUrl.takeIf { profile.signedIn }, unread, { nav.navigate(Routes.NOTIFICATIONS) }) { nav.navigate(Routes.SETTINGS) } }
+        if (profile.signedIn && profile.driveConnected && profile.driveNeedsReauth) item {
+            AppCard(onClick = { nav.navigate(Routes.BACKUP) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.CloudOff, null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Reconnect Google Drive", style = MaterialTheme.typography.titleSmall)
+                        Text("Automatic backups are paused because Google needs your permission again.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
         item { BalanceCard(s, hidden, vm::toggleHidden) { nav.navigate(Routes.ACCOUNTS) } }
         item { QuickActions(nav) }
         if (s.accountCount == 0) item {
@@ -160,16 +179,19 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
 }
 
 @Composable
-private fun Header(name: String, onProfile: () -> Unit) {
+private fun Header(name: String, photoUrl: String?, unread: Int, onNotifications: () -> Unit, onProfile: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text("My Money", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             Text(greeting() + if (name.isNotBlank()) ", ${name.substringBefore(' ')}" else "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Box(
-            Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).clickable(onClick = onProfile),
-            contentAlignment = Alignment.Center,
-        ) { Text(name.trim().firstOrNull()?.uppercase() ?: "M", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+        IconButton(onClick = onNotifications) {
+            BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 99) "99+" else unread.toString()) } }) {
+                Icon(Icons.Filled.Notifications, if (unread > 0) "Notifications, $unread unread" else "Notifications")
+            }
+        }
+        Spacer(Modifier.width(4.dp))
+        Box(Modifier.clip(CircleShape).clickable(onClick = onProfile)) { com.mymoney.app.ui.account.Avatar(photoUrl, name, 42.dp) }
     }
 }
 

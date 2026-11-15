@@ -74,6 +74,7 @@ class AddLoanViewModel @Inject constructor(
     handle: SavedStateHandle,
     private val repo: LoanRepository,
     accounts: AccountRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     bus: MessageBus,
 ) : BaseViewModel(bus) {
     private val editId = handle.get<Long>("id")?.takeIf { it > 0 }
@@ -124,6 +125,7 @@ class AddLoanViewModel @Inject constructor(
                     due = f.due, accountId = f.accountId, description = f.description, reminder = f.reminder,
                 )
             )
+            if (f.reminder) com.mymoney.app.notifications.ReminderWorker.schedule(context)
         }
     }
 }

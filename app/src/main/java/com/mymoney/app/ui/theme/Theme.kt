@@ -24,7 +24,7 @@ val Violet = Color(0xFF7C3AED)
 val PurpleDark = Color(0xFF2E1065)
 val Lavender = Color(0xFFEDE9FE)
 
-private val LightColors = lightColorScheme(
+internal val LightColors = lightColorScheme(
     primary = Purple, onPrimary = Color.White,
     primaryContainer = Lavender, onPrimaryContainer = PurpleDark,
     secondary = Violet, onSecondary = Color.White,
@@ -39,7 +39,7 @@ private val LightColors = lightColorScheme(
     error = Color(0xFFDC2626), onError = Color.White,
 )
 
-private val DarkColors = darkColorScheme(
+internal val DarkColors = darkColorScheme(
     primary = Color(0xFFA78BFA), onPrimary = Color(0xFF1E0B4B),
     primaryContainer = Color(0xFF3B1E7A), onPrimaryContainer = Color(0xFFEDE9FE),
     secondary = Color(0xFFC4B5FD), onSecondary = Color(0xFF1E0B4B),

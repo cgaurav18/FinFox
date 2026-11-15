@@ -65,6 +65,14 @@ fun ScheduleDetailScreen(nav: NavController, vm: ScheduleDetailViewModel = hiltV
     var del by remember { mutableStateOf(false) }
     val currency = LocalCurrency.current
     LaunchedEffect(Unit) { vm.done.collect { nav.popBackStack() } }
+    // Never auto-pays: the request only opens the confirmation dialog, after the app lock.
+    LaunchedEffect(d) {
+        val sch = d?.schedule ?: return@LaunchedEffect
+        if (vm.payRequested) {
+            vm.consumePayRequest()
+            if (sch.status == com.mymoney.app.data.db.ScheduleStatus.ACTIVE) pay = true
+        }
+    }
     AppScaffold(
         title = "Scheduled Payment", onBack = { nav.popBackStack() },
         actions = {

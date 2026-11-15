@@ -33,6 +33,9 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    profiles: com.mymoney.app.data.repo.ProfileRepository,
+    cloud: com.mymoney.app.cloud.CloudBackupService,
+    private val widgets: com.mymoney.app.widgets.WidgetRepository,
     private val settings: SettingsRepository,
     private val pins: PinManager,
     private val backup: BackupManager,
@@ -42,6 +45,12 @@ class SettingsViewModel @Inject constructor(
 ) : BaseViewModel(bus) {
     val state: StateFlow<SettingsEntity?> = settings.settings.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val security: StateFlow<SecurityState> = pins.state.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), SecurityState())
+    val profile = profiles.profile.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.mymoney.app.data.db.UserProfileEntity())
+    val backupPrefs = cloud.prefs.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.mymoney.app.data.db.BackupPreferencesEntity())
+    val widgetPrefs = widgets.observePrefs().stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.mymoney.app.data.db.WidgetPreferencesEntity())
+
+    fun setWidgetPrivacy(on: Boolean) = launchSafe { widgets.updatePrefs { it.copy(privacyMode = on) }; com.mymoney.app.widgets.WidgetUpdater.updateAll(context) }
+    fun setHideBalances(on: Boolean) = update { it.copy(hideBalances = on) }
 
     fun update(transform: (SettingsEntity) -> SettingsEntity) = launchSafe { settings.update(transform) }
     fun setName(n: String) = launchSafe("Profile updated") { if (n.isBlank()) throw com.mymoney.app.core.FinanceException("Name can't be empty"); settings.update { it.copy(profileName = n.trim().take(40)) } }
@@ -50,7 +59,7 @@ class SettingsViewModel @Inject constructor(
     fun setBiometric(on: Boolean) = launchSafe(if (on) "Biometric unlock enabled" else "Biometric unlock disabled") { pins.setBiometric(on) }
     fun setAutoLock(s: Int) = launchSafe { pins.setAutoLock(s) }
     fun lockNow() = lock.lock()
-    fun eraseAll() = launchSafe { backup.resetAll(); pins.clearAll() }
+    fun eraseAll() = launchSafe { backup.resetAll(); pins.clearAll(); com.mymoney.app.widgets.WidgetUpdater.updateAll(context) }
 }
 
 @HiltViewModel
@@ -98,24 +107,11 @@ class BackupViewModel @Inject constructor(
     @ApplicationContext private val context: android.content.Context,
     bus: MessageBus,
 ) : BaseViewModel(bus) {
-    private val _pending = MutableStateFlow<BackupPayload?>(null)
-    /** A decrypted backup waiting for the user's confirmation before it replaces current data. */
-    val pending: StateFlow<BackupPayload?> = _pending.asStateFlow()
-
     fun beforeExternalActivity() { lock.suppressNextBackgroundLock = true }
 
     fun export(uri: Uri, password: String) = launchSafe {
         val stats = backup.exportTo(uri, password.toCharArray())
         bus.show("Encrypted backup saved (${stats.accounts} accounts, ${stats.transactions} transactions)")
-    }
-
-    fun read(uri: Uri, password: String) = launchSafe { _pending.value = backup.readFrom(uri, password.toCharArray()) }
-    fun cancelRestore() { _pending.value = null }
-    fun confirmRestore() = launchSafe("Backup restored") {
-        val p = _pending.value ?: return@launchSafe
-        backup.replaceAll(p)
-        _pending.value = null
-        ReminderWorker.schedule(context)
     }
 
     private val allTime = DateRange(LocalDate.of(1970, 1, 1), LocalDate.of(2200, 1, 1))

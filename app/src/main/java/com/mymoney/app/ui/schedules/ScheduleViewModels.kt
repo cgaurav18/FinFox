@@ -104,6 +104,7 @@ class AddScheduleViewModel @Inject constructor(
     private val repo: ScheduleRepository,
     accounts: AccountRepository,
     categories: CategoryRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
     bus: MessageBus,
 ) : BaseViewModel(bus) {
     private val editId = handle.get<Long>("id")?.takeIf { it > 0 }
@@ -155,18 +156,23 @@ class AddScheduleViewModel @Inject constructor(
                     nextDue = if (f.nextDueTouched) f.nextDue else null, reminderDaysBefore = f.reminderDays, notes = f.notes, active = f.active,
                 )
             )
+            // A payment due soon shouldn't wait for the next periodic check to remind.
+            com.mymoney.app.notifications.ReminderWorker.schedule(context)
         }
     }
 }
 
 @HiltViewModel
 class ScheduleDetailViewModel @Inject constructor(
-    handle: SavedStateHandle,
+    private val handle: SavedStateHandle,
     private val repo: ScheduleRepository,
     accounts: AccountRepository,
     bus: MessageBus,
 ) : BaseViewModel(bus) {
     val id: Long = handle["id"] ?: -1
+    /** Opened from a reminder's "Mark as paid" action: show the confirmation dialog once. */
+    val payRequested: Boolean get() = handle.get<Boolean>("pay") == true
+    fun consumePayRequest() { handle["pay"] = false }
     val schedule = repo.observe(id).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val history = repo.observeOccurrences(id).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
     val accounts = accounts.observeAccounts(false).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())

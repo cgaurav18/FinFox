@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -56,12 +57,14 @@ class HomeViewModel @Inject constructor(
     txns: TransactionRepository,
     loans: LoanRepository,
     schedules: ScheduleRepository,
-    settings: SettingsRepository,
+    private val settings: SettingsRepository,
+    profiles: com.mymoney.app.data.repo.ProfileRepository,
 ) : ViewModel() {
     val month = MutableStateFlow(YearMonth.now())
-    private val hidden = MutableStateFlow(false)
-    val balanceHidden: StateFlow<Boolean> = hidden
-    fun toggleHidden() { hidden.value = !hidden.value }
+    /** Persisted "Hide balances" preference (Settings → Security), toggled by the eye on the balance card. */
+    val balanceHidden: StateFlow<Boolean> = settings.settings.map { it.hideBalances }.stateIn(viewModelScope, SharingStarted.Eagerly, false)
+    fun toggleHidden() { viewModelScope.launch { settings.update { it.copy(hideBalances = !it.hideBalances) } } }
+    val profile = profiles.profile.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.mymoney.app.data.db.UserProfileEntity())
 
     private val monthData = month.flatMapLatest { ym ->
         val range = DateRange(ym.minusMonths(5).atDay(1), ym.atEndOfMonth())

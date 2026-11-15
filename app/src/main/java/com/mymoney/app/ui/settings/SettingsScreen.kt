@@ -1,9 +1,5 @@
 package com.mymoney.app.ui.settings
 
-import android.Manifest
-import android.os.Build
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -12,8 +8,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.AddToDrive
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.Widgets
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
@@ -47,6 +50,7 @@ import com.mymoney.app.core.Money
 import com.mymoney.app.data.db.ThemeMode
 import com.mymoney.app.security.PinManager
 import com.mymoney.app.ui.auth.Biometrics
+import com.mymoney.app.ui.account.Avatar
 import com.mymoney.app.ui.components.AppCard
 import com.mymoney.app.ui.components.AppScaffold
 import com.mymoney.app.ui.components.AppTextField
@@ -62,11 +66,13 @@ import com.mymoney.app.ui.navigation.Routes
 fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) {
     val s by vm.state.collectAsStateWithLifecycle()
     val sec by vm.security.collectAsStateWithLifecycle()
+    val profile by vm.profile.collectAsStateWithLifecycle()
+    val backupPrefs by vm.backupPrefs.collectAsStateWithLifecycle()
+    val widgetPrefs by vm.widgetPrefs.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var editName by remember { mutableStateOf(false) }
     var erase by remember { mutableStateOf(false) }
     var about by remember { mutableStateOf(false) }
-    val notifPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted -> vm.setNotifications(granted) }
     AppScaffold(title = "Settings", onBack = { nav.popBackStack() }) { pad ->
         val st = s ?: run { LoadingState(Modifier.padding(pad)); return@AppScaffold }
         val primary = MaterialTheme.colorScheme.primary
@@ -88,29 +94,67 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     PillTabs(ThemeMode.entries, st.themeMode, { when (it) { ThemeMode.SYSTEM -> "System"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" } }, vm::setTheme, Modifier.padding(top = 8.dp))
                 }
             }
-            item { SectionHeader("Security") }
+            item { SectionHeader("Account") }
             item {
                 AppCard(contentPadding = 0.dp) {
-                    Row2(Icons.Filled.Password, primary, "Change PIN", "Also lets you create a new recovery code") { nav.navigate(Routes.CHANGE_PIN) }
-                    Column(Modifier.padding(horizontal = 16.dp)) {
-                        val available = remember { Biometrics.available(context) }
-                        LabeledSwitchRow("Biometric unlock", if (available) "Use fingerprint or face to unlock" else "Not available on this device", sec.biometricEnabled && available, { on ->
-                            if (on) Biometrics.prompt(context, "Enable biometric unlock", "Confirm it's you", onSuccess = { vm.setBiometric(true) }) else vm.setBiometric(false)
-                        }, enabled = available)
-                        DropdownField("Auto-lock", PinManager.AUTO_LOCK_OPTIONS.map { it.first }, sec.autoLockSeconds, { v -> PinManager.AUTO_LOCK_OPTIONS.first { it.first == v }.second }, vm::setAutoLock,
-                            leading = { Icon(Icons.Filled.Timer, null) })
+                    ListRow(Icons.Filled.AccountCircle, primary, if (profile.signedIn) profile.displayName ?: "Google account" else "Google account",
+                        if (profile.signedIn) "${profile.email} · Sign out or switch account" else "Not signed in · Sign in with Google",
+                        onClick = { nav.navigate(Routes.GOOGLE_ACCOUNT) }) {
+                        if (profile.signedIn) Avatar(profile.photoUrl, profile.displayName, 30.dp)
+                        else Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
-                    Row2(Icons.Filled.Lock, primary, "Lock now", null) { vm.lockNow() }
+                }
+            }
+            item { SectionHeader("Cloud Backup") }
+            item {
+                AppCard(contentPadding = 0.dp) {
+                    Row2(Icons.Filled.AddToDrive, Color(0xFF16A34A), if (profile.driveConnected) "Google Drive connected" else "Connect Google Drive",
+                        when {
+                            !profile.signedIn -> "Sign in first"
+                            profile.driveNeedsReauth -> "Permission expired — reconnect"
+                            profile.driveConnected -> "App folder only"
+                            else -> "Encrypted backups in your own Drive"
+                        }) { nav.navigate(Routes.DRIVE) }
+                    HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    Row2(Icons.Filled.Backup, Color(0xFF16A34A), "Backup & Restore",
+                        "Last backup: " + (backupPrefs.lastSuccessAt?.let { com.mymoney.app.core.Dates.formatDay(it) } ?: "never") +
+                            if (backupPrefs.autoBackupEnabled) " · Auto ${backupPrefs.frequency.label.lowercase()}" else " · Automatic backup off") { nav.navigate(Routes.BACKUP) }
+                    HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    Row2(Icons.Filled.History, Color(0xFF16A34A), "Backup history", "Restore or delete Drive backups") { nav.navigate(Routes.BACKUP_HISTORY) }
+                }
+            }
+            item { SectionHeader("Widgets") }
+            item {
+                AppCard(contentPadding = 0.dp) {
+                    Row2(Icons.Filled.Widgets, Color(0xFF7C3AED), "Widget gallery", "Previews of 7 widgets and how to add them") { nav.navigate(Routes.WIDGETS) }
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        LabeledSwitchRow("Widget privacy mode", "Mask amounts on home screen widgets", widgetPrefs.privacyMode, vm::setWidgetPrivacy)
+                    }
                 }
             }
             item { SectionHeader("Notifications") }
             item {
-                AppCard {
-                    LabeledSwitchRow("Payment & loan reminders", "Upcoming and overdue scheduled payments, loan due dates", st.notificationsEnabled, { on ->
-                        if (on && Build.VERSION.SDK_INT >= 33) notifPermission.launch(Manifest.permission.POST_NOTIFICATIONS) else vm.setNotifications(on)
-                    })
-                    LabeledSwitchRow("Budget alerts", "Notify at 80%, 90% and 100% of a budget", st.budgetAlertsEnabled, { on -> vm.update { it.copy(budgetAlertsEnabled = on) } }, enabled = st.notificationsEnabled)
-                    DropdownField("Reminder time", (6..21).toList(), st.reminderHour, { h -> String.format("%02d:00", h) + if (h < 12) " AM" else " PM" }, { h -> vm.update { it.copy(reminderHour = h) } }, Modifier.padding(top = 8.dp))
+                AppCard(contentPadding = 0.dp) {
+                    Row2(Icons.Filled.Tune, Color(0xFFF97316), "Reminder settings",
+                        if (!st.notificationsEnabled) "All notifications off" else "Categories, timing, quiet hours") { nav.navigate(Routes.NOTIFICATION_PREFS) }
+                    HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
+                    Row2(Icons.Filled.Notifications, Color(0xFFF97316), "Notification center", "History of reminders and alerts") { nav.navigate(Routes.NOTIFICATIONS) }
+                }
+            }
+            item { SectionHeader("Security") }
+            item {
+                AppCard(contentPadding = 0.dp) {
+                    Row2(Icons.Filled.Password, primary, "App PIN", "Change PIN or create a new recovery code") { nav.navigate(Routes.CHANGE_PIN) }
+                    Column(Modifier.padding(horizontal = 16.dp)) {
+                        val available = remember { Biometrics.available(context) }
+                        LabeledSwitchRow("Fingerprint unlock", if (available) "Use fingerprint or face to unlock" else "Not available on this device", sec.biometricEnabled && available, { on ->
+                            if (on) Biometrics.prompt(context, "Enable biometric unlock", "Confirm it's you", onSuccess = { vm.setBiometric(true) }) else vm.setBiometric(false)
+                        }, enabled = available)
+                        DropdownField("Auto-lock", PinManager.AUTO_LOCK_OPTIONS.map { it.first }, sec.autoLockSeconds, { v -> PinManager.AUTO_LOCK_OPTIONS.first { it.first == v }.second }, vm::setAutoLock,
+                            leading = { Icon(Icons.Filled.Timer, null) })
+                        LabeledSwitchRow("Hide balances", "Mask balances on the dashboard until you tap the eye", st.hideBalances, vm::setHideBalances)
+                    }
+                    Row2(Icons.Filled.Lock, primary, "Lock now", null) { vm.lockNow() }
                 }
             }
             item { SectionHeader("Data") }
@@ -118,7 +162,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                 AppCard(contentPadding = 0.dp) {
                     Row2(Icons.Filled.Category, Color(0xFFF97316), "Custom categories", "Add, edit or archive categories") { nav.navigate(Routes.CATEGORIES) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Row2(Icons.Filled.Backup, Color(0xFF16A34A), "Backup, restore & export", "Encrypted backup, CSV and PDF") { nav.navigate(Routes.BACKUP) }
+                    Row2(Icons.Filled.Description, Color(0xFF16A34A), "Backup to file & export", "Encrypted file backup, CSV and PDF") { nav.navigate(Routes.BACKUP) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Row2(Icons.Filled.Info, Color(0xFF0891B2), "App information", "Version ${BuildConfig.VERSION_NAME}") { about = true }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
@@ -141,7 +185,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
         onDismissRequest = { about = false },
         title = { Text("My Money ${BuildConfig.VERSION_NAME}") },
         text = {
-            Text("Personal finance & expense tracker.\n\n• Works fully offline — the app has no internet permission.\n• All data is stored only on this device.\n• Your PIN is stored as a salted hash protected by the Android Keystore.\n• Backups are encrypted with your password (AES-256-GCM).\n• My Money never asks for bank passwords, card numbers, CVVs or UPI PINs, and never moves real money.")
+            Text("Personal finance & expense tracker.\n\n• Works fully offline. The network is used only for optional Google Sign-In and your own Google Drive backups.\n• All financial data is stored on this device.\n• Your PIN is stored as a salted hash protected by the Android Keystore.\n• Backups are encrypted on the device (AES-256-GCM, Argon2id key) before upload.\n• My Money never asks for bank passwords, card numbers, CVVs or UPI PINs, and never moves real money.")
         },
         confirmButton = { TextButton(onClick = { about = false }) { Text("OK") } },
     )

@@ -27,8 +27,10 @@ class BudgetAlertChecker @Inject constructor(private val db: AppDatabase, privat
         val spent = db.transactionDao().expenseForCategory(categoryId, range.startMillis, range.endMillisExclusive)
         val reached = Reports.budgetThreshold(spent, budget.limitMinor) ?: return null
         var newlyCrossed: Int? = null
+        // 101 = spending went over the limit (distinct from exactly reaching 100%).
+        val levels = listOf(80, 90, 100).filter { it <= reached } + if (spent > budget.limitMinor) listOf(EXCEEDED) else emptyList()
         // Record every threshold up to the one reached; announce only the highest new one.
-        for (t in listOf(80, 90, 100).filter { it <= reached }) {
+        for (t in levels) {
             val id = db.reminderDao().insertIgnore(
                 NotificationReminderEntity(refType = ReminderRefType.BUDGET, refId = budget.id, dueKey = t.toLong(), notifiedAt = Dates.nowMillis())
             )
@@ -41,4 +43,6 @@ class BudgetAlertChecker @Inject constructor(private val db: AppDatabase, privat
         }
         return newlyCrossed
     }
+
+    companion object { const val EXCEEDED = 101 }
 }

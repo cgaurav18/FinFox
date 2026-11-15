@@ -43,7 +43,7 @@ enum class ScheduleCategory(val label: String, val iconKey: String) {
 enum class ScheduleStatus { ACTIVE, PAUSED, COMPLETED }
 enum class OccurrenceStatus { PAID, SKIPPED }
 enum class LoanDirection { GAVE, RECEIVED }
-enum class ReminderRefType { SCHEDULE, LOAN, BUDGET }
+enum class ReminderRefType { SCHEDULE, LOAN, BUDGET, GOAL, CARD }
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 @Serializable
@@ -326,4 +326,6 @@ data class SettingsEntity(
     val notificationsEnabled: Boolean = true,
     val budgetAlertsEnabled: Boolean = true,
     @ColumnInfo(defaultValue = "9") val reminderHour: Int = 9,
+    /** Hide balances on the dashboard by default. */
+    @ColumnInfo(defaultValue = "0") val hideBalances: Boolean = false,
 )

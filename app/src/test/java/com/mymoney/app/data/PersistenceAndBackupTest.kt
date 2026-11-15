@@ -8,6 +8,7 @@ import com.mymoney.app.backup.BackupCrypto
 import com.mymoney.app.backup.BackupException
 import com.mymoney.app.backup.BackupManager
 import com.mymoney.app.core.Dates
+import com.mymoney.app.security.FakeBox
 import com.mymoney.app.data.db.AppDatabase
 import com.mymoney.app.data.db.CategoryType
 import com.mymoney.app.data.db.Frequency
@@ -74,14 +75,14 @@ class PersistenceAndBackupTest {
     @Test fun encryptedBackupRestoresEverythingExactly() = runTest {
         val src = Env.inMemory()
         val bank = populate(src)
-        val mgr = BackupManager(ctx, src.db)
+        val mgr = BackupManager(ctx, src.db, FakeBox())
         val snapshot = mgr.snapshot()
         val file = BackupCrypto.encrypt(mgr.encode(snapshot), "my backup pw".toCharArray())
 
         val dst = Env.inMemory()
         dst.seed()
         dst.bank("Other", 99 * R) // existing data is replaced
-        val dstMgr = BackupManager(ctx, dst.db)
+        val dstMgr = BackupManager(ctx, dst.db, FakeBox())
         dstMgr.replaceAll(dstMgr.decode(BackupCrypto.decrypt(file, "my backup pw".toCharArray())))
 
         assertThat(dstMgr.snapshot().copy(exportedAt = 0)).isEqualTo(snapshot.copy(exportedAt = 0))
@@ -94,7 +95,7 @@ class PersistenceAndBackupTest {
     @Test fun failedRestoreLeavesDataUntouched() = runTest {
         val e = Env.inMemory()
         val bank = populate(e)
-        val mgr = BackupManager(ctx, e.db)
+        val mgr = BackupManager(ctx, e.db, FakeBox())
         val good = mgr.snapshot()
         // A corrupt payload: transaction pointing at a missing account violates a foreign key mid-restore.
         val bad = good.copy(transactions = good.transactions + good.transactions.first().copy(id = 999, accountId = 4242))
@@ -107,7 +108,7 @@ class PersistenceAndBackupTest {
     @Test fun resetWipesAndReseeds() = runTest {
         val e = Env.inMemory()
         populate(e)
-        BackupManager(ctx, e.db).resetAll()
+        BackupManager(ctx, e.db, FakeBox()).resetAll()
         assertThat(e.db.transactionDao().count()).isEqualTo(0)
         assertThat(e.db.backupDao().accounts()).isEmpty()
         assertThat(e.db.categoryDao().count()).isGreaterThan(0)

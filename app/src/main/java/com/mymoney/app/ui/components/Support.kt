@@ -48,6 +48,8 @@ abstract class BaseViewModel(protected val bus: MessageBus) : ViewModel() {
                 bus.show(e.message ?: "Couldn't complete that")
             } catch (e: com.mymoney.app.backup.BackupException) {
                 bus.show(e.message ?: "Backup failed")
+            } catch (e: com.mymoney.app.cloud.CloudBackupException) {
+                bus.show(e.message ?: "Google Drive backup failed")
             } catch (e: android.database.sqlite.SQLiteConstraintException) {
                 bus.show("This record is linked to other data and can't be changed that way")
             } catch (e: Exception) {

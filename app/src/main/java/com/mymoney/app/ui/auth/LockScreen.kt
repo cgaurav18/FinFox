@@ -6,7 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import com.mymoney.app.ui.account.Avatar
+import com.mymoney.app.ui.account.LegalLinks
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -44,6 +48,7 @@ import kotlinx.coroutines.launch
 fun LockScreen(vm: LockViewModel = hiltViewModel()) {
     val s by vm.state.collectAsStateWithLifecycle()
     val sec by vm.security.collectAsStateWithLifecycle()
+    val profile by vm.profile.collectAsStateWithLifecycle()
     val context = LocalContext.current
     val bioAvailable = remember { Biometrics.available(context) }
     val canBio = sec.biometricEnabled && bioAvailable
@@ -67,8 +72,13 @@ fun LockScreen(vm: LockViewModel = hiltViewModel()) {
         Spacer(Modifier.height(32.dp))
         AppLogo(76.dp)
         Spacer(Modifier.height(20.dp))
-        Text("Welcome back", style = MaterialTheme.typography.headlineSmall)
-        Text("Enter your PIN to continue", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text("Welcome back" + (profile.displayName?.takeIf { profile.signedIn }?.let { ", ${it.substringBefore(' ')}" } ?: ""), style = MaterialTheme.typography.headlineSmall)
+        Text(if (canBio) "Enter your PIN or use your fingerprint" else "Enter your PIN to continue", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (profile.signedIn) { Avatar(profile.photoUrl, profile.displayName, 22.dp); Spacer(Modifier.width(6.dp)) }
+            Text(if (profile.signedIn) profile.email ?: "Google account" else "Offline mode", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
         Spacer(Modifier.height(28.dp))
         PinDots(sec.pinLength, s.entered.length, s.error != null)
         Spacer(Modifier.height(12.dp))
@@ -83,6 +93,7 @@ fun LockScreen(vm: LockViewModel = hiltViewModel()) {
         PinPad(onDigit = vm::digit, onBackspace = vm::backspace, onBiometric = if (canBio) bio else null, enabled = !lockedOut)
         Spacer(Modifier.height(12.dp))
         TextButton(onClick = { vm.showForgot(true) }) { Text("Forgot PIN?") }
+        LegalLinks()
     }
     if (s.showForgot) ForgotPinDialog(vm, canBio) { vm.showForgot(false) }
 }

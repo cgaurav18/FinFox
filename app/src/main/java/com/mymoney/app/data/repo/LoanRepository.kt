@@ -43,7 +43,7 @@ sealed interface SettleMode {
  * receivable +X) which is never counted as an expense; repayments create the opposite movement.
  */
 @Singleton
-class LoanRepository @Inject constructor(private val db: AppDatabase) {
+class LoanRepository @Inject constructor(private val db: AppDatabase, private val notifier: com.mymoney.app.notifications.Notifier) {
     private val dao = db.loanDao()
     private val txDao = db.transactionDao()
 
@@ -128,7 +128,16 @@ class LoanRepository @Inject constructor(private val db: AppDatabase) {
         db.reminderDao().deleteFor(ReminderRefType.LOAN.name, id)
     }
 
-    suspend fun addRepayment(loanId: Long, amountMinor: Long, dateMillis: Long, accountId: Long?, note: String?): Long = db.withTransaction {
+    suspend fun addRepayment(loanId: Long, amountMinor: Long, dateMillis: Long, accountId: Long?, note: String?): Long {
+        val rid = addRepaymentInternal(loanId, amountMinor, dateMillis, accountId, note)
+        dao.getLoanDetail(loanId)?.let { l ->
+            notifier.repaymentRecorded(loanId, l.personName, amountMinor, (l.loan.amountMinor - l.repaidMinor).coerceAtLeast(0),
+                l.loan.direction == LoanDirection.GAVE, db.settingsDao().get()?.currency ?: "INR")
+        }
+        return rid
+    }
+
+    private suspend fun addRepaymentInternal(loanId: Long, amountMinor: Long, dateMillis: Long, accountId: Long?, note: String?): Long = db.withTransaction {
         val loan = dao.getLoan(loanId) ?: throw FinanceException("Entry not found")
         if (loan.settled) throw FinanceException("This entry is already settled")
         if (amountMinor <= 0) throw FinanceException("Amount must be greater than zero")

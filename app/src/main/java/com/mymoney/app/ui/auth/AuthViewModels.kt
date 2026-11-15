@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
-enum class OnboardingStep { INTRO, PROFILE, CREATE_PIN, CONFIRM_PIN, BIOMETRIC, RECOVERY }
+enum class OnboardingStep { INTRO, LOGIN, PROFILE, CREATE_PIN, CONFIRM_PIN, BIOMETRIC, RECOVERY }
 
 data class OnboardingState(
     val step: OnboardingStep = OnboardingStep.INTRO,
@@ -31,6 +31,8 @@ data class OnboardingState(
     val error: String? = null,
     val recoveryCode: String? = null,
     val saving: Boolean = false,
+    /** Email of the Google account chosen on the login step, or null for offline use. */
+    val googleEmail: String? = null,
 )
 
 @HiltViewModel
@@ -43,6 +45,8 @@ class OnboardingViewModel @Inject constructor(
 
     fun next(step: OnboardingStep) = _s.update { it.copy(step = step, error = null) }
     fun setName(v: String) = _s.update { it.copy(name = v) }
+    fun onGoogleSignedIn(name: String?, email: String?) =
+        _s.update { it.copy(name = it.name.ifBlank { name?.trim()?.take(40) ?: "" }, googleEmail = email, step = OnboardingStep.PROFILE, error = null) }
     fun setCurrency(v: String) = _s.update { it.copy(currency = v) }
     fun setPinLength(n: Int) = _s.update { it.copy(pinLength = n, pin = "", error = null) }
 
@@ -108,7 +112,9 @@ class LockViewModel @Inject constructor(
     private val pins: PinManager,
     private val lock: AppLockManager,
     private val backup: BackupManager,
+    profiles: com.mymoney.app.data.repo.ProfileRepository,
 ) : ViewModel() {
+    val profile = profiles.profile.stateIn(viewModelScope, SharingStarted.Eagerly, com.mymoney.app.data.db.UserProfileEntity())
     val security: StateFlow<SecurityState> = pins.state.stateIn(viewModelScope, SharingStarted.Eagerly, SecurityState())
     private val _s = MutableStateFlow(LockState())
     val state: StateFlow<LockState> = _s.asStateFlow()

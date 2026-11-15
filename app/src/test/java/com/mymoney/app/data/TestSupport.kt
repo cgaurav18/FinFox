@@ -16,7 +16,10 @@ import com.mymoney.app.data.repo.GoalRepository
 import com.mymoney.app.data.repo.LoanRepository
 import com.mymoney.app.data.repo.ScheduleRepository
 import com.mymoney.app.data.repo.TransactionRepository
+import com.mymoney.app.notifications.BackupEvent
+import com.mymoney.app.notifications.GoalAlert
 import com.mymoney.app.notifications.Notifier
+import com.mymoney.app.data.db.ScheduleCategory
 import java.time.LocalDate
 import java.util.concurrent.Executors
 
@@ -24,9 +27,17 @@ class FakeNotifier : Notifier {
     val budget = mutableListOf<Pair<String, Int>>()
     val schedules = mutableListOf<Pair<Long, Boolean>>()
     val loans = mutableListOf<Long>()
-    override fun budgetAlert(budgetId: Long, categoryName: String, percent: Int, spentMinor: Long, limitMinor: Long, currency: String) { budget += categoryName to percent }
-    override fun scheduleReminder(scheduleId: Long, title: String, amountMinor: Long, due: LocalDate, overdue: Boolean, currency: String) { schedules += scheduleId to overdue }
-    override fun loanReminder(loanId: Long, person: String, outstandingMinor: Long, gave: Boolean, due: LocalDate, currency: String) { loans += loanId }
+    val cards = mutableListOf<Pair<Long, LocalDate>>()
+    val repayments = mutableListOf<Pair<Long, Long>>()
+    val goals = mutableListOf<Pair<Long, GoalAlert>>()
+    val backups = mutableListOf<BackupEvent>()
+    override suspend fun budgetAlert(budgetId: Long, categoryName: String, percent: Int, spentMinor: Long, limitMinor: Long, currency: String) { budget += categoryName to percent }
+    override suspend fun scheduleReminder(scheduleId: Long, title: String, amountMinor: Long, due: LocalDate, overdue: Boolean, currency: String, category: ScheduleCategory) { schedules += scheduleId to overdue }
+    override suspend fun loanReminder(loanId: Long, person: String, outstandingMinor: Long, gave: Boolean, due: LocalDate, currency: String) { loans += loanId }
+    override suspend fun cardDueReminder(accountId: Long, cardName: String, outstandingMinor: Long, due: LocalDate, currency: String) { cards += accountId to due }
+    override suspend fun repaymentRecorded(loanId: Long, person: String, amountMinor: Long, outstandingMinor: Long, gave: Boolean, currency: String) { repayments += loanId to outstandingMinor }
+    override suspend fun goalAlert(goalId: Long, name: String, alert: GoalAlert, savedMinor: Long, targetMinor: Long, targetDate: LocalDate?, currency: String) { goals += goalId to alert }
+    override suspend fun backupEvent(event: BackupEvent, detail: String?) { backups += event }
 }
 
 /** Wires real repositories over a Room database, as Hilt does in the app. */
@@ -37,9 +48,9 @@ class Env(val db: AppDatabase) {
     val categories = CategoryRepository(db)
     val schedules = ScheduleRepository(db, alerts)
     val txns = TransactionRepository(db, schedules, alerts)
-    val loans = LoanRepository(db)
+    val loans = LoanRepository(db, notifier)
     val budgets = BudgetRepository(db, alerts)
-    val goals = GoalRepository(db)
+    val goals = GoalRepository(db, notifier)
 
     suspend fun seed() = DefaultData.ensureSeeded(db)
     suspend fun cat(name: String, type: CategoryType = CategoryType.EXPENSE) = db.categoryDao().findByName(name, type.name)!!.id

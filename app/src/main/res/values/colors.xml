@@ -4,4 +4,6 @@
     <color name="brand_dark">#2E1065</color>
     <color name="background">#F8F9FC</color>
     <color name="icon_bg">#5B21B6</color>
+    <color name="widget_surface">#FFFFFFFF</color>
+    <color name="widget_tile">#FFF3EEFF</color>
 </resources>
