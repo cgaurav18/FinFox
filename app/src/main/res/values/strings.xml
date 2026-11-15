@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">My Money</string>
+    <string name="channel_reminders">Payment reminders</string>
+    <string name="channel_budget">Budget alerts</string>
+</resources>
