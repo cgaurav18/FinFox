@@ -2,7 +2,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Local reminders only. No INTERNET permission: all data stays on device. -->
+    <!-- Network is used only for the optional Google Sign-In and the user's own Google Drive backups.
+         Everything else works offline; financial data is stored only in the local Room database. -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
@@ -28,6 +31,96 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Home screen widgets (Jetpack Glance) -->
+        <receiver
+            android:name=".widgets.TotalBalanceReceiver"
+            android:exported="true"
+            android:label="Total Balance">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_total_balance" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.IncomeExpenseReceiver"
+            android:exported="true"
+            android:label="Income &amp; Expenses">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_income_expense" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.QuickActionsReceiver"
+            android:exported="true"
+            android:label="Quick Actions">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_quick_actions" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.UpcomingPaymentsReceiver"
+            android:exported="true"
+            android:label="Upcoming Payments">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_upcoming" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.MoneyWithPeopleReceiver"
+            android:exported="true"
+            android:label="Money with People">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_people" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.BudgetReceiver"
+            android:exported="true"
+            android:label="Budget Tracker">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_budget" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.CreditCardReceiver"
+            android:exported="true"
+            android:label="Credit Cards">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_credit_cards" />
+        </receiver>
+
+        <!-- "Remind later" / "Dismiss" notification buttons. Not exported: only our PendingIntents reach it. -->
+        <receiver
+            android:name=".notifications.NotificationActionReceiver"
+            android:exported="false" />
 
         <!-- WorkManager is initialised by MyMoneyApp (HiltWorkerFactory). -->
         <provider

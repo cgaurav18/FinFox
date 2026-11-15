@@ -51,7 +51,7 @@ import com.mymoney.app.ui.components.PrimaryButton
 import com.mymoney.app.ui.components.SecondaryButton
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import java.time.LocalDate
 
 @Composable
@@ -65,6 +65,14 @@ fun ScheduleDetailScreen(nav: NavController, vm: ScheduleDetailViewModel = hiltV
     var del by remember { mutableStateOf(false) }
     val currency = LocalCurrency.current
     LaunchedEffect(Unit) { vm.done.collect { nav.popBackStack() } }
+    // Never auto-pays: the request only opens the confirmation dialog, after the app lock.
+    LaunchedEffect(d) {
+        val sch = d?.schedule ?: return@LaunchedEffect
+        if (vm.payRequested) {
+            vm.consumePayRequest()
+            if (sch.status == com.mymoney.app.data.db.ScheduleStatus.ACTIVE) pay = true
+        }
+    }
     AppScaffold(
         title = "Scheduled Payment", onBack = { nav.popBackStack() },
         actions = {
@@ -80,15 +88,15 @@ fun ScheduleDetailScreen(nav: NavController, vm: ScheduleDetailViewModel = hiltV
         LazyColumn(Modifier.padding(pad).fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             item {
                 Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconBadge(AppIcons.forKey(s.category.iconKey), if (overdue) FinanceTheme.colors.expense else MaterialTheme.colorScheme.primary, 60.dp)
+                    IconBadge(AppIcons.forKey(s.category.iconKey), if (overdue) FinFoxTheme.colors.expense else MaterialTheme.colorScheme.primary, 60.dp)
                     Spacer(Modifier.height(8.dp))
                     Text(s.title, style = MaterialTheme.typography.titleLarge)
                     Text(Money.format(s.amountMinor, currency), style = MaterialTheme.typography.headlineMedium)
                     Spacer(Modifier.height(4.dp))
                     when (s.status) {
-                        ScheduleStatus.ACTIVE -> Chip(Dates.dueLabel(due, today), if (overdue) FinanceTheme.colors.expense else MaterialTheme.colorScheme.primary)
-                        ScheduleStatus.PAUSED -> Chip("Paused", FinanceTheme.colors.warning)
-                        ScheduleStatus.COMPLETED -> Chip("Completed", FinanceTheme.colors.income)
+                        ScheduleStatus.ACTIVE -> Chip(Dates.dueLabel(due, today), if (overdue) FinFoxTheme.colors.expense else MaterialTheme.colorScheme.primary)
+                        ScheduleStatus.PAUSED -> Chip("Paused", FinFoxTheme.colors.warning)
+                        ScheduleStatus.COMPLETED -> Chip("Completed", FinFoxTheme.colors.income)
                     }
                 }
             }
@@ -112,7 +120,7 @@ fun ScheduleDetailScreen(nav: NavController, vm: ScheduleDetailViewModel = hiltV
                     KeyValueRow("Next due", Dates.formatDay(due))
                     if (overdue) {
                         val n = ScheduleMath.overdueCount(LocalDate.ofEpochDay(s.startEpochDay), s.frequency, due, s.endEpochDay?.let(LocalDate::ofEpochDay), today)
-                        KeyValueRow("Overdue", "$n installment${if (n == 1) "" else "s"}", FinanceTheme.colors.expense)
+                        KeyValueRow("Overdue", "$n installment${if (n == 1) "" else "s"}", FinFoxTheme.colors.expense)
                     }
                     KeyValueRow("Started", Dates.formatDay(LocalDate.ofEpochDay(s.startEpochDay)))
                     KeyValueRow("Ends", s.endEpochDay?.let { Dates.formatDay(LocalDate.ofEpochDay(it)) } ?: "No end date")
@@ -141,7 +149,7 @@ fun ScheduleDetailScreen(nav: NavController, vm: ScheduleDetailViewModel = hiltV
                                     }
                                     if (o.occurrence.status == OccurrenceStatus.PAID) Text(Money.format(o.occurrence.amountMinor, currency), style = MaterialTheme.typography.titleSmall,
                                         modifier = o.occurrence.transactionId?.let { id -> Modifier.padding(start = 8.dp) } ?: Modifier)
-                                    else Chip("Skipped", FinanceTheme.colors.warning)
+                                    else Chip("Skipped", FinFoxTheme.colors.warning)
                                 }
                             }
                         }

@@ -1,192 +1,231 @@
-# My Money – Personal Finance & Expense Tracker (Android)
+<div align="center">
 
-A native Android app (Kotlin + Jetpack Compose) to track income, expenses, bank accounts, credit cards,
-cash, transfers, scheduled payments (EMI / SIP / bills), money lent and borrowed, budgets, savings goals
-and reports. It works **completely offline**: no backend, no Firebase, no account, and the app does not
-request the `INTERNET` permission.
+<img src="app/src/main/res/drawable-nodpi/finfox_logo.png" width="140" alt="FinFox mascot: a fox hugging a purple ₹ wallet"/>
 
-> My Money is a tracker. It never initiates real payments and never asks for bank passwords, full card
-> numbers, CVVs or UPI PINs.
+# FinFox
 
-## Quick start
+**A private, offline-first personal finance tracker for Android.**
 
-### Install the prebuilt APK
-`dist/MyMoney-1.0.0-debug.apk` (application id `com.mymoney.app.debug`; also built to `app/build/outputs/apk/debug/app-debug.apk`).
+Track bank accounts, credit cards, cash, EMIs, SIPs, bills, money lent and borrowed, budgets and savings goals,
+with no account, no ads and no server. Your money data never leaves your phone unless you back it up,
+encrypted, to your own Google Drive.
+
+[![Android](https://img.shields.io/badge/Android-8.0%2B-3DDC84?logo=android&logoColor=white)](#-install)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
+[![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
+[![License: MIT](https://img.shields.io/badge/License-MIT-5B0FA6.svg)](LICENSE)
+[![Tests](https://img.shields.io/badge/tests-127%20passing-16A34A)](#-testing)
+
+[Features](#-features) · [Install](#-install) · [Build](#-build-from-source) · [Architecture](#-architecture) · [Contributing](#-contributing)
+
+</div>
+
+---
+
+## 📱 Screenshots
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/dashboard-light.png" width="200" alt="Dashboard, light theme"/><br/><sub>Dashboard</sub></td>
+    <td align="center"><img src="docs/screenshots/dashboard-dark.png" width="200" alt="Dashboard, dark theme"/><br/><sub>Dark mode</sub></td>
+    <td align="center"><img src="docs/screenshots/transactions-dark.png" width="200" alt="Transactions screen"/><br/><sub>Transactions</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home-screen-widgets.png" width="200" alt="FinFox widgets on the Android home screen"/><br/><sub>Home screen widgets</sub></td>
+    <td align="center"><img src="docs/screenshots/widget-gallery.png" width="200" alt="In-app widget gallery with live previews"/><br/><sub>Widget gallery</sub></td>
+    <td align="center"><img src="docs/screenshots/drive-backup.png" width="200" alt="Google Drive backup settings"/><br/><sub>Encrypted Drive backup</sub></td>
+  </tr>
+</table>
+
+## ✨ Features
+
+### Money tracking
+
+- 🏦 **Accounts:** bank accounts, credit cards (limit, statement and due day) and cash wallets
+- 💸 **Transactions:** income, expenses and transfers with categories, tags, search, filters and sorting
+- 📅 **Scheduled payments:** EMI, SIP, rent, bills and subscriptions. Mark as paid, skip, pause, history and calendar view
+- 🤝 **Money with people:** lend and borrow, partial repayments, settle or write off, due dates
+- 🎯 **Budgets** per category with 80 / 90 / 100 % alerts, and **savings goals** with milestones
+- 📊 **Reports:** income vs expenses, cash flow, category breakdowns, CSV and PDF export
+
+### Made for your phone
+
+- 🧩 **Seven home screen widgets** (Jetpack Glance): balance, income and expenses, quick actions, upcoming payments, money with people, budget, credit cards. They are responsive, follow light and dark mode, and have a privacy mode
+- 🔔 **Smart reminders:** "Mark as paid" (asks for your PIN first), "Remind later", quiet hours, amounts hidden on the lock screen, and an in-app notification center
+- 🌗 **Light, dark and follow-system themes** in the FinFox purple and orange design, using the Inter typeface
+- ♿ **Accessible:** WCAG AA text contrast (checked by tests), font scaling, reduced-motion support and 48 dp touch targets
+
+### Private by design
+
+- 🔐 **PIN and fingerprint lock** with auto-lock, lockout after wrong attempts and an offline recovery code
+- ☁️ **Optional Google Drive backup**, encrypted on the device with AES-256-GCM and an Argon2id key derived from your passphrase. It uses only Drive's hidden app folder
+- 🚫 **No sign-in, no analytics, no ads, no backend.** Network is used only for the optional Drive backup
+
+> FinFox is a **tracker**. It never moves real money and never asks for bank passwords, card numbers, CVVs or UPI PINs.
+
+## 📥 Install
+
+1. Download `FinFox-<version>-release.apk` from the [Releases](https://github.com/niraj-ghetiya/FinFox/releases) page, or receive it as a file on WhatsApp, Telegram or email.
+2. Open the file on your phone. If Android asks, allow **Install unknown apps** for that app (Chrome, Files, WhatsApp…).
+3. Tap **Install**. Play Protect may warn because the app isn't from the Play Store; choose **More details → Install anyway**.
+
+Updates install over the previous version and keep all your data, as long as they're signed with the same release key.
+
+## 🛠 Build from source
+
+**Requirements:** JDK 17, Android SDK (platform 35, build-tools 35). Android Studio Ladybug or newer works out of the box.
 
 ```bash
-adb install -r dist/MyMoney-1.0.0-debug.apk
-```
-Or copy the APK to the phone and open it (allow "Install unknown apps" for your file manager).
+git clone https://github.com/niraj-ghetiya/FinFox.git
+cd FinFox
+echo "sdk.dir=/path/to/Android/sdk" > local.properties   # Android Studio creates this for you
 
-### Build from source
-Requirements: JDK 17 and the Android SDK (platform 35, build-tools 35). Android Studio Ladybug or newer
-works out of the box.
-
-```bash
-# local.properties must point at your SDK, e.g. sdk.dir=/Users/you/Library/Android/sdk
-./gradlew assembleDebug          # debug APK
-./gradlew testDebugUnitTest      # JVM + Robolectric unit/UI tests
-./gradlew connectedDebugAndroidTest   # instrumented tests (device/emulator required)
-./gradlew assembleRelease        # minified release APK
+./gradlew assembleDebug               # debug APK  → app/build/outputs/apk/debug/
+./gradlew testDebugUnitTest           # 127 JVM + Robolectric tests
+./gradlew connectedDebugAndroidTest   # instrumented tests (device or emulator)
+./gradlew assembleRelease             # minified release APK
 ```
+
+> **Debug vs release size:** the debug APK is about 28 MB because nothing is shrunk. The release build runs R8 code and resource shrinking and comes out at about 7 MB. Always share the release APK.
 
 ### Release signing
-Create a keystore once and keep it safe (losing it means you can't ship updates):
+
+Create a keystore once and **back it up**. If you lose it, you can never ship an update to existing installs.
 
 ```bash
-keytool -genkeypair -v -keystore my-money-release.jks -alias mymoney -keyalg RSA -keysize 4096 -validity 10000
+keytool -genkeypair -v -keystore finfox-release.jks -storetype PKCS12 \
+        -alias finfox -keyalg RSA -keysize 4096 -validity 10000
 ```
 
-Then add `keystore.properties` in the project root (it's git-ignored):
+Then add `keystore.properties` to the project root. Both files are git-ignored:
 
 ```properties
-storeFile=my-money-release.jks
-storePassword=...
-keyAlias=mymoney
-keyPassword=...
+storeFile=finfox-release.jks
+storePassword=…
+keyAlias=finfox
+keyPassword=…
 ```
 
-`./gradlew assembleRelease` then produces a signed, R8-minified, resource-shrunk APK. Without the file,
-the release APK is built unsigned.
+`./gradlew assembleRelease` now produces a signed APK. Without the file, the release APK is built unsigned.
 
-## Tech stack
+### Google Drive backup (optional)
 
-| Area | Choice |
-|---|---|
-| Language / UI | Kotlin 2.0, Jetpack Compose, Material 3 |
-| Architecture | MVVM + clean layering (UI → ViewModel → Repository → DAO/Room) |
-| Database | Room (SQLite) with exported schemas and explicit migrations |
-| DI | Hilt (incl. HiltWorker) |
-| Navigation | Navigation Compose |
-| Background | WorkManager (reminders) |
-| Settings | Room `settings` table (backed up) + DataStore (security state, never backed up) |
-| Charts | Custom Compose Canvas charts (donut, grouped bar, line) — interactive, no extra dependency |
-| Security | PBKDF2 PIN hash sealed with an Android Keystore AES-GCM key, BiometricPrompt |
-| Min / target SDK | 26 (Android 8.0) / 35 |
+Drive backup needs no sign-in, no Firebase and no secrets in the APK. You only register your app with Google:
 
-## Project layout
+1. In [Google Cloud Console](https://console.cloud.google.com), create or select a project and enable the **Google Drive API**.
+2. Under **OAuth consent screen**, add the scope `https://www.googleapis.com/auth/drive.appdata`. While the app is in *Testing* mode, add your Google account as a test user.
+3. Under **Credentials → Create OAuth client ID → Android**, create one client per signing key:
+
+   | Build | Package name | SHA-1 from |
+   |---|---|---|
+   | Debug | `com.mymoney.app.debug` | `keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android` |
+   | Release | `com.mymoney.app` | `keytool -list -v -keystore finfox-release.jks -alias finfox` |
+
+Google matches the client by package name and SHA-1 at runtime, so nothing is copied into the project. In the app, **Settings → Connect Google Drive** opens Google's account picker. FinFox requests only `drive.appdata` (its hidden app folder) and `email` (to remember which account holds the backups).
+
+> The application id is still `com.mymoney.app`, from the project's original name, so existing installs keep upgrading in place.
+
+## 🏗 Architecture
+
+MVVM with clean layering: **Compose UI → ViewModel → Repository → Room DAO**, wired with Hilt.
 
 ```
 app/src/main/java/com/mymoney/app/
-├── core/            Money (paise math & INR formatting), dates, periods, FinanceException
-├── data/db/         Room entities, DAOs, query POJOs, AppDatabase, migrations, seed data
-├── data/repo/       Repositories – all business rules and multi-table Room transactions
-├── domain/          Pure rules: TransactionRules, ScheduleMath, Reports aggregation
-├── security/        PinManager, KeystoreSecretBox, AppLockManager
-├── backup/          AES-256-GCM backup format, BackupManager, CSV & PDF exporters
-├── notifications/   Notifier, ReminderEngine + ReminderWorker (WorkManager)
-├── di/              Hilt modules
-└── ui/              Compose screens + ViewModels per feature, theme, components, navigation
+├── core/            Money (paise math, INR formatting), dates, periods
+├── data/db/         Room entities, DAOs, migrations (v1 → v2), seed data
+├── data/repo/       Repositories: business rules + multi-table Room transactions
+├── domain/          Pure logic: transaction rules, schedule math, reports
+├── backup/          Encrypted backup format, key store, replace / merge restore, CSV & PDF export
+├── cloud/           Drive authorization, Drive REST client, backup service + WorkManager worker
+├── notifications/   Dispatcher (preferences, quiet hours, privacy, history), reminder engine
+├── widgets/         7 Glance widgets, snapshot repository, change-driven refresh
+├── security/        PIN hashing, Android Keystore secret box, app lock
+└── ui/              Compose screens + ViewModels, FinFox theme, components, navigation
 ```
 
-## Financial model (how balances stay correct)
-
-* **Money is stored as `Long` minor units (paise).** No `Float`/`Double` is used for money anywhere.
-* **Balances are derived, not stored.** `balance = opening + Σ effects of the account's ledger entries`.
-  Editing or deleting any transaction therefore reverses its old effect and applies the new one
-  automatically and atomically — balances can't drift, even if the app is killed mid-operation
-  (every multi-table change runs in a single Room transaction).
-* Credit cards store the opening outstanding as a negative opening balance, so `outstanding = −balance`.
-
-| Action | Effect |
+| Area | Choice |
 |---|---|
-| Expense from bank/cash | account − amount, counted as expense |
-| Income to bank/cash | account + amount, counted as income |
-| Purchase on credit card | card outstanding + amount, counted as expense (once) |
-| Card bill payment (transfer bank → card) | bank − amount, outstanding − amount, **not** an expense |
-| Transfer A → B | A − amount, B + amount, never income/expense |
-| Lend ₹X from an account | account − X, receivable + X, not an expense |
-| Repayment received | account + amount, receivable − amount |
-| Borrow / repay borrowed | mirror of the above |
-| Savings goal contribution | earmark only – no balance change (no double counting); earmarks can't exceed a linked account's balance |
+| UI | Kotlin 2.0, Jetpack Compose, Material 3, Inter (bundled) |
+| Data | Room (SQLite) with exported schemas and explicit migrations; DataStore for preferences |
+| DI / background | Hilt, WorkManager (reminders, backups). No AlarmManager, no foreground services |
+| Widgets | Jetpack Glance 1.1 |
+| Cloud | Google Drive REST v3 (`appDataFolder`) via Retrofit + OkHttp; Play Services `AuthorizationClient` |
+| Crypto | AES-256-GCM, Argon2id (BouncyCastle), PBKDF2 for the PIN, Android Keystore |
+| Min / target SDK | 26 (Android 8.0) / 35 |
 
-**Available balance = bank + cash.** Unused credit limits are never counted as money; card outstanding is
-shown separately.
+### How balances stay correct
 
-Rules enforced: amounts > 0 with ≤ 2 decimals; transfers need two different accounts in the same
-currency; a credit card can't be a transfer source; categories must match the transaction type; archived
-accounts/categories can't receive new entries; loan ledger entries can only be changed from *Money with
-People*; repayments can't exceed the outstanding amount.
+- **Money is stored as `Long` paise.** No floating point anywhere.
+- **Balances are derived, never stored:** `opening + Σ ledger effects`. Editing or deleting a transaction can't make a balance drift, and every multi-table change is a single Room transaction.
+- **Available balance = bank + cash.** Credit limits are never counted as money; card outstanding is shown separately.
+- Card bill payments are transfers, not expenses. Lending and borrowing are never counted as income or expense. Savings goals earmark money instead of moving it.
+- Scheduled payments never deduct money automatically. A unique `(schedule, due date)` index makes paying the same installment twice impossible.
 
-**Scheduled payments** never deduct money automatically. *Mark as paid* creates the linked transaction and
-an installment record in one transaction; a unique `(scheduleId, dueDate)` index makes paying the same
-installment twice impossible. Deleting a paid installment's transaction re-opens that installment.
+### Backup format
 
-**Accounts with history can't be deleted** (foreign keys use `RESTRICT`); archive them instead.
-Opening-balance edits and "Fix balance" reconciliations are written to an audit trail.
+```
+"MMBK" | version 2 | Argon2id | memory, iterations, parallelism | salt | IV | AES-256-GCM(JSON)
+```
 
-## Security & privacy
+The whole header is authenticated, so its parameters can't be tampered with. The passphrase and key are never uploaded, so losing the passphrase means the backup can't be decrypted. Restore validates the schema and referential integrity, shows a preview, lets you **Merge** (adds only missing records, idempotent) or **Replace** everything, runs in one transaction with a foreign-key check, and keeps a safety copy so you can undo it. Backups contain financial records and preferences, never the PIN, biometric data, tokens or keys.
 
-* PIN (4 or 6 digits) → PBKDF2-HMAC-SHA256 (120k iterations, random salt) → sealed with a non-exportable
-  AES-256-GCM key in the Android Keystore. Weak PINs (1111, 1234…) are rejected.
-* 5 wrong attempts → escalating lockout (30 s, 60 s, 2 min…).
-* **Forgot PIN:** a one-time recovery code is shown at setup (only its hash is stored). The PIN can be reset
-  with that code or with an enrolled biometric. As a last resort, all data can be erased.
-* Auto-lock after the app is backgrounded (immediately / 30 s / 1 / 5 / 15 min) and after foreground
-  inactivity. The app stays composed under the lock screen, so navigation state is preserved.
-* Android cloud backup and device-transfer are disabled for app data. Backups are explicit and encrypted:
-  `MMBK | version | salt | iv | AES-256-GCM(JSON)` with a PBKDF2 key from your password (never stored).
-  Restore decrypts first, shows what the file contains, asks for confirmation, then replaces everything in
-  one transaction (all-or-nothing).
-* CSV export neutralises spreadsheet formula injection.
-* Permissions: `POST_NOTIFICATIONS` (asked only when you enable reminders on Android 13+) and
-  `USE_BIOMETRIC`. No internet, contacts, storage or location permissions — files are read/written through
-  the Storage Access Framework picker.
+## 🎨 Design system
 
-## Features by screen
+All colours live in [`ui/theme/Color.kt`](app/src/main/java/com/mymoney/app/ui/theme/Color.kt) and are applied through [`FinFoxTheme.kt`](app/src/main/java/com/mymoney/app/ui/theme/FinFoxTheme.kt). UI code uses no raw hex values.
 
-* **Splash & onboarding** – intro pager, name & currency, create/confirm PIN, biometric opt-in, recovery code.
-* **Lock screen** – PIN pad, fingerprint/face, lockout timer, forgot-PIN reset.
-* **Home** – available balance (hideable), bank / cash / card due, monthly income, expenses and net savings
-  with month switcher, money to receive / to pay (with overdue), quick actions, upcoming payments, 6-month
-  income-vs-expense bar chart, category donut, recent transactions.
-* **Transactions** – All / Income / Expense / Transfer tabs, search (merchant, note, tag, category, account,
-  person), filters (period incl. custom range, account, category, min/max amount), sort (newest, oldest,
-  highest, lowest), grouped by day; add / edit / view / delete with confirmation; optional "repeat" creates
-  a schedule.
-* **Accounts** – All / Bank / Card / Cash; add bank account, credit card (limit, statement & due day),
-  cash wallet; edit, archive/restore, delete (only without history), per-account history, card
-  utilisation, balance reconciliation with audit trail.
-* **Scheduled payments** – EMI, SIP, electricity, internet, mobile, rent, insurance, credit card bill,
-  subscriptions, custom; daily → yearly; upcoming / overdue / all / calendar views; mark paid (amount,
-  account and date editable), skip, pause/resume, edit, delete, payment history, reminders.
-* **Money with People** – I Gave / I Received / People; person-wise ledger; partial and full repayments
-  (edit/delete), settle (record remaining or write off), reopen, due-date reminders, search.
-* **Budgets** – monthly per-category limits, spent/remaining, progress colours, alerts at 80/90/100 %,
-  history by month, copy last month.
-* **Savings goals** – target, date, linked account, contributions/withdrawals, progress, monthly
-  amount needed, completion, archive, history.
-* **Reports** – Today / Yesterday / Last 7 days / This month / Last month / Custom + account & category
-  filters; income vs expenses (bar), cash flow (line), category and income-source donuts, account-wise
-  spending, card outstanding, budget utilisation, scheduled payment summary, lent/borrowed, savings
-  progress; CSV and PDF export.
-* **Settings** – profile name, currency, light/dark/system theme, change PIN & new recovery code,
-  biometric lock, auto-lock, lock now, reminders/budget alerts and reminder time, custom categories
-  (add/edit/archive/delete), encrypted backup & restore, CSV/PDF export, app info, erase all data.
+| | Light | Dark |
+|---|---|---|
+| Background / card | `#F8F6FC` / `#FFFFFF` | `#170B27` / `#2B1645` |
+| Primary button | `#5B0FA6` | `#7C20D9` |
+| Selected navigation | `#7C20D9` | `#FF7417` |
+| Accent | `#FF7417` | `#FFB21C` |
 
-## Tests
+Status colours: income `#16A34A` · expense `#DC2626` · transfer `#2563EB` · EMI/upcoming `#D97706` · savings `#0D9488` · overdue `#B91C1C`. They always appear with an icon or label, never as the only cue. Brand gradient: `#25083F → #5B0FA6 → #7C20D9 → #FF7417`.
 
-`./gradlew testDebugUnitTest` runs 64 tests on the JVM (Robolectric for Room/DataStore/Compose):
+## 🧪 Testing
 
-| Suite | Covers |
+`./gradlew testDebugUnitTest` runs **127 tests** on the JVM (Robolectric for Room, DataStore, Compose and Glance):
+
+| Area | What's covered |
 |---|---|
-| `MoneyTest` | parsing, rounding safety, INR grouping, compact format |
-| `TransactionRulesTest` | valid/invalid account combinations and amounts |
-| `ScheduleMathTest` | month-end anchoring, all frequencies, overdue counts |
-| `ReportsTest` | summaries exclude transfers/loans, breakdowns, series, CSV escaping |
-| `FinanceRepositoryTest` | account CRUD & audit, transaction CRUD, balance recalculation, card purchase & bill, transfers, loans with partial repayments/edits/deletes/write-off, schedule mark-paid/skip/duplicate prevention/reopen, card-bill schedules, recurring option, reminders, budgets & alerts, savings earmarks, categories, date/search filters |
-| `PersistenceAndBackupTest` | data survives DB close/reopen, encrypted backup round-trip, failed restore is all-or-nothing, reset |
-| `PinManagerTest` | PIN set/verify/change, no plaintext at rest, lockout, recovery reset, biometric/auto-lock prefs |
-| `AppLockManagerTest` | background timeout, picker suppression, inactivity lock |
-| `ComponentsUiTest` | PIN pad, amount field validation, confirm dialog, tabs, interactive charts |
+| Finance | Balances, cards, transfers, loans and repayments, schedules (no double payment), budgets, goals, filters |
+| Persistence | Data survives restart; migration from a real v1 database to v2 with schema validation |
+| Backup | Cross-device restore with the passphrase only, wrong passphrase, corrupted, tampered and truncated files, malicious KDF parameters, merge de-duplication, undo |
+| Cloud | Drive REST client against a mock server, token expiry and retry, verification failures, WorkManager retry behaviour |
+| Notifications | Actions, lock-screen privacy, quiet hours, snooze, duplicate prevention, permission denied |
+| Widgets | Rendering at small, medium and large sizes, privacy mode, refresh after transactions, RemoteViews child limits |
+| Theme | Brand colours match the spec, WCAG contrast in both themes, theme persistence |
 
-Instrumented tests (`app/src/androidTest`) cover the real Android Keystore, schema/migration validation
-and on-device persistence.
+Instrumented tests (`app/src/androidTest`) cover the real Android Keystore, `MigrationTestHelper` and on-device persistence.
 
-## Adding a database migration
+### Adding a database migration
 
 1. Change the entities and bump `AppDatabase.VERSION`.
-2. Build once – Room exports `app/schemas/com.mymoney.app.data.db.AppDatabase/<n>.json`.
-3. Add a `Migration(n-1, n)` to `Migrations.ALL` and a `migrateAndValidate` test in `DeviceTests.kt`.
+2. Build once. Room exports `app/schemas/.../<n>.json`.
+3. Add a `Migration(n-1, n)` to `Migrations.ALL` and a test in `MigrationTest` / `DeviceTests`.
 
-Destructive fallback is intentionally disabled so user data is never dropped silently.
+Destructive fallback is intentionally disabled, so user data is never dropped silently.
+
+## 🤝 Contributing
+
+Contributions are welcome!
+
+1. Fork the repo and create a branch: `git checkout -b feature/my-change`.
+2. Keep money as `Long` paise and put business rules in repositories, not in UI code.
+3. Use theme tokens (`MaterialTheme.colorScheme`, `FinFoxTheme.colors`) instead of hard-coded colours.
+4. Add or update tests and make sure `./gradlew testDebugUnitTest` passes.
+5. Open a pull request describing what changed and why.
+
+Found a bug or have an idea? [Open an issue](https://github.com/niraj-ghetiya/FinFox/issues).
+
+**Security:** please don't post vulnerabilities in public issues. Use GitHub's private vulnerability reporting under the repository's **Security** tab.
+
+## 📄 License
+
+FinFox is released under the [MIT License](LICENSE).
+
+The bundled [Inter](https://rsms.me/inter/) typeface is licensed under the SIL Open Font License 1.1 (see [`licenses/Inter-OFL.txt`](licenses/Inter-OFL.txt)).
+
+<div align="center">
+<sub>Made with 🧡 and Kotlin.</sub>
+</div>

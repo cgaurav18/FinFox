@@ -45,7 +45,7 @@ data class AccountForm(
     val bankAccountType: String = "Savings",
     val opening: String = "",
     val currency: String = "INR",
-    val color: Long = 0xFF7C3AED,
+    val color: Long = com.mymoney.app.ui.components.AppIcons.DEFAULT_COLOR,
     val creditLimit: String = "",
     val statementDay: String = "",
     val dueDay: String = "",
@@ -67,7 +67,7 @@ class AddAccountViewModel @Inject constructor(
     private val _form = MutableStateFlow(AccountForm(id = editId, type = initialType, loaded = editId == null, color = defaultColor(initialType)))
     val form: StateFlow<AccountForm> = _form.asStateFlow()
 
-    private fun defaultColor(t: AccountType) = when (t) { AccountType.BANK -> 0xFF2563EB; AccountType.CREDIT_CARD -> 0xFFF59E0B; AccountType.CASH -> 0xFF16A34A }
+    private fun defaultColor(t: AccountType) = when (t) { AccountType.BANK -> 0xFF5B0FA6; AccountType.CREDIT_CARD -> 0xFFFF7417; AccountType.CASH -> 0xFF0D9488 }
 
     init {
         viewModelScope.launch {

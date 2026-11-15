@@ -8,7 +8,9 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import com.mymoney.app.data.db.AppDatabase
 import com.mymoney.app.data.db.DefaultData
-import com.mymoney.app.notifications.AndroidNotifier
+import com.mymoney.app.cloud.BackupWorker
+import com.mymoney.app.notifications.NotificationDispatcher
+import com.mymoney.app.widgets.WidgetUpdater
 import com.mymoney.app.notifications.ReminderWorker
 import com.mymoney.app.security.AppLockManager
 import com.mymoney.app.security.PinManager
@@ -34,9 +36,14 @@ class MyMoneyApp : Application(), Configuration.Provider {
 
     override fun onCreate() {
         super.onCreate()
-        AndroidNotifier.createChannels(this)
-        appScope.launch { DefaultData.ensureSeeded(db) }
+        NotificationDispatcher.createChannels(this)
+        appScope.launch {
+            DefaultData.ensureSeeded(db)
+            // Keep the automatic-backup schedule in step with saved preferences (e.g. after an app update).
+            db.cloudBackupDao().getPrefs()?.let { BackupWorker.syncSchedule(this@MyMoneyApp, it) }
+        }
         ReminderWorker.schedule(this)
+        WidgetUpdater.observe(this, db, appScope)
         ProcessLifecycleOwner.get().lifecycle.addObserver(object : DefaultLifecycleObserver {
             override fun onStop(owner: LifecycleOwner) = lock.onBackground()
             override fun onStart(owner: LifecycleOwner) {

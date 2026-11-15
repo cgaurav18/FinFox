@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -57,8 +58,14 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.mymoney.app.core.Money
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.draw.scale
 import com.mymoney.app.ui.theme.AmountStyle
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxPalette
+import com.mymoney.app.ui.theme.FinFoxShapes
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,9 +91,16 @@ fun AppScaffold(
         floatingActionButton = floatingActionButton,
         bottomBar = bottomBar,
         containerColor = MaterialTheme.colorScheme.background,
-        content = content,
-    )
+    ) { pad ->
+        // Responsive: on tablets/landscape keep content at a readable width, centred.
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+            Box(Modifier.widthIn(max = MaxContentWidth).fillMaxSize()) { content(pad) }
+        }
+    }
 }
+
+/** Maximum width of screen content on large displays. */
+val MaxContentWidth = 720.dp
 
 @Composable
 fun AppCard(
@@ -96,7 +110,7 @@ fun AppCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    val elevation = CardDefaults.cardElevation(defaultElevation = if (FinanceTheme.colors.isDark) 0.dp else 1.dp)
+    val elevation = CardDefaults.cardElevation(defaultElevation = if (FinFoxTheme.colors.isDark) 0.dp else 1.dp)
     if (onClick != null) {
         Card(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = colors, elevation = elevation) {
             Column(Modifier.padding(contentPadding), content = content)
@@ -145,32 +159,45 @@ fun <T> PillTabs(options: List<T>, selected: T, label: (T) -> String, onSelect: 
         rowMod.clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surface).padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
+        val fin = FinFoxTheme.colors
         options.forEach { o ->
             val isSel = o == selected
             val tabMod = if (scrollable) Modifier else Modifier.weight(1f)
             Box(
                 tabMod.clip(RoundedCornerShape(10.dp))
-                    .background(if (isSel) MaterialTheme.colorScheme.primary else Color.Transparent)
+                    .background(if (isSel) fin.primaryButton else Color.Transparent)
                     .clickable(role = Role.Tab) { onSelect(o) }
                     .padding(horizontal = if (scrollable) 14.dp else 6.dp, vertical = 9.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label(o), style = MaterialTheme.typography.labelLarge, maxLines = 1,
-                    color = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isSel) fin.onPrimaryButton else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
     }
 }
 
+/** Subtle press feedback for buttons (skipped when the user disabled animations). */
+@Composable
+fun Modifier.pressScale(interaction: MutableInteractionSource): Modifier {
+    val pressed by interaction.collectIsPressedAsState()
+    val reduced = FinFoxTheme.reducedMotion
+    val s by animateFloatAsState(if (pressed && !reduced) 0.97f else 1f, tween(120), label = "press")
+    return this.scale(s)
+}
+
 @Composable
 fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true, loading: Boolean = false, icon: ImageVector? = null) {
+    val fin = FinFoxTheme.colors
+    val interaction = remember { MutableInteractionSource() }
     Button(
-        onClick = onClick, enabled = enabled && !loading, modifier = modifier.fillMaxWidth().height(52.dp),
-        shape = RoundedCornerShape(14.dp), colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
+        onClick = onClick, enabled = enabled && !loading, modifier = modifier.fillMaxWidth().height(52.dp).pressScale(interaction),
+        shape = FinFoxShapes.button, interactionSource = interaction,
+        colors = ButtonDefaults.buttonColors(containerColor = fin.primaryButton, contentColor = fin.onPrimaryButton),
     ) {
-        if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+        if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp, color = fin.onPrimaryButton)
         else {
             if (icon != null) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(8.dp)) }
             Text(text, style = MaterialTheme.typography.titleSmall)
@@ -178,21 +205,34 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     }
 }
 
+/** Light-purple secondary button; [destructive] makes it a red button for irreversible actions. */
 @Composable
 fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, destructive: Boolean = false, enabled: Boolean = true) {
-    val c = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-    OutlinedButton(onClick = onClick, modifier = modifier.height(48.dp), shape = RoundedCornerShape(14.dp), enabled = enabled,
-        colors = ButtonDefaults.outlinedButtonColors(contentColor = c)) {
+    val fin = FinFoxTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    val container = if (destructive) FinFoxPalette.Expense else fin.secondaryButton
+    val content = if (destructive) Color.White else fin.onSecondaryButton
+    Button(
+        onClick = onClick, modifier = modifier.height(48.dp).pressScale(interaction), shape = FinFoxShapes.button, enabled = enabled,
+        interactionSource = interaction, elevation = null,
+        colors = ButtonDefaults.buttonColors(containerColor = container, contentColor = content),
+    ) {
         if (icon != null) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)) }
-        Text(text)
+        Text(text, style = MaterialTheme.typography.labelLarge)
     }
 }
 
 @Composable
 fun TonalButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, enabled: Boolean = true) {
-    FilledTonalButton(onClick = onClick, modifier = modifier.height(44.dp), shape = RoundedCornerShape(12.dp), enabled = enabled) {
+    val fin = FinFoxTheme.colors
+    val interaction = remember { MutableInteractionSource() }
+    FilledTonalButton(
+        onClick = onClick, modifier = modifier.height(48.dp).pressScale(interaction), shape = FinFoxShapes.button, enabled = enabled,
+        interactionSource = interaction,
+        colors = ButtonDefaults.filledTonalButtonColors(containerColor = fin.secondaryButton, contentColor = fin.onSecondaryButton),
+    ) {
         if (icon != null) { Icon(icon, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)) }
-        Text(text, maxLines = 1)
+        Text(text, maxLines = 1, style = MaterialTheme.typography.labelLarge)
     }
 }
 
@@ -208,7 +248,8 @@ fun EmptyState(icon: ImageVector, title: String, subtitle: String, modifier: Mod
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
         if (action != null && onAction != null) {
             Spacer(Modifier.height(16.dp))
-            Button(onClick = onAction, shape = RoundedCornerShape(12.dp)) { Text(action) }
+            Button(onClick = onAction, shape = FinFoxShapes.button, modifier = Modifier.height(48.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = FinFoxTheme.colors.primaryButton, contentColor = FinFoxTheme.colors.onPrimaryButton)) { Text(action) }
         }
     }
 }
@@ -242,7 +283,7 @@ fun ConfirmDialog(
 
 @Composable
 fun ProgressBar(fraction: Float, color: Color, modifier: Modifier = Modifier, height: Dp = 8.dp) {
-    val anim by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(600), label = "progress")
+    val anim by animateFloatAsState(fraction.coerceIn(0f, 1f), tween(if (FinFoxTheme.reducedMotion) 0 else 600), label = "progress")
     Box(modifier.fillMaxWidth().height(height).clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.surfaceVariant)) {
         Box(Modifier.fillMaxWidth(anim).height(height).clip(RoundedCornerShape(50)).background(color))
     }

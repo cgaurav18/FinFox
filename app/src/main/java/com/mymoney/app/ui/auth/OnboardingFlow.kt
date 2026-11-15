@@ -140,7 +140,8 @@ private fun StepHeader(icon: ImageVector, title: String, subtitle: String) {
 private fun ProfileStep(s: OnboardingState, vm: OnboardingViewModel) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Spacer(Modifier.height(24.dp))
-        StepHeader(Icons.Filled.Person, "Let's set you up", "Everything stays on this device. No account or internet needed.")
+        StepHeader(Icons.Filled.Person, "Let's set you up",
+            "Everything stays on this device. No account or internet needed.")
         Spacer(Modifier.height(8.dp))
         AppTextField(s.name, vm::setName, "Your name", error = s.error, capitalization = KeyboardCapitalization.Words, maxLength = 40)
         DropdownField("Currency", Money.supportedCurrencies, s.currency, { "$it (${Money.symbolFor(it).trim()})" }, vm::setCurrency)
@@ -154,7 +155,7 @@ private fun PinStep(s: OnboardingState, vm: OnboardingViewModel) {
     val confirming = s.step == OnboardingStep.CONFIRM_PIN
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(16.dp))
-        StepHeader(Icons.Filled.Shield, if (confirming) "Confirm your PIN" else "Create a PIN", if (confirming) "Enter the same PIN again" else "You'll use this PIN to open My Money")
+        StepHeader(Icons.Filled.Shield, if (confirming) "Confirm your PIN" else "Create a PIN", if (confirming) "Enter the same PIN again" else "You'll use this PIN to open FinFox")
         Spacer(Modifier.height(20.dp))
         if (!confirming) {
             PillTabs(listOf(4, 6), s.pinLength, { "$it digits" }, vm::setPinLength, Modifier.width(220.dp))
@@ -206,6 +207,6 @@ private fun RecoveryStep(code: String, onDone: () -> Unit) {
             Text("I've saved my recovery code somewhere safe", style = MaterialTheme.typography.bodyMedium)
         }
         Spacer(Modifier.height(16.dp))
-        PrimaryButton("Start using My Money", onClick = onDone, enabled = saved)
+        PrimaryButton("Start using FinFox", onClick = onDone, enabled = saved)
     }
 }

@@ -31,6 +31,7 @@ object PendingRoute {
 class RootViewModel @Inject constructor(
     pins: PinManager,
     settings: SettingsRepository,
+    appearance: com.mymoney.app.data.repo.AppearanceRepository,
     private val lock: AppLockManager,
     val bus: MessageBus,
 ) : ViewModel() {
@@ -38,10 +39,10 @@ class RootViewModel @Inject constructor(
 
     init { viewModelScope.launch { delay(900); splashDone.value = true } }
 
-    val state: StateFlow<RootState> = combine(splashDone, pins.state, settings.settings) { done, sec, s ->
+    val state: StateFlow<RootState> = combine(splashDone, pins.state, settings.settings, appearance.themeMode) { done, sec, s, theme ->
         RootState(
             phase = when { !done -> RootPhase.SPLASH; !sec.onboarded || !sec.pinSet -> RootPhase.ONBOARDING; else -> RootPhase.MAIN },
-            theme = s.themeMode, currency = s.currency,
+            theme = theme, currency = s.currency,
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, RootState())
 

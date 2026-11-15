@@ -14,6 +14,7 @@ import com.mymoney.app.data.db.ScheduleStatus
 import com.mymoney.app.data.db.TxnType
 import com.mymoney.app.data.repo.AccountInput
 import com.mymoney.app.data.repo.AccountRepository
+import com.mymoney.app.data.repo.BudgetAlertChecker
 import com.mymoney.app.data.repo.GoalInput
 import com.mymoney.app.data.repo.LoanInput
 import com.mymoney.app.data.repo.ScheduleInput
@@ -345,8 +346,8 @@ class FinanceRepositoryTest {
 
         expense(bank, 50 * R, "Food") // still 83%: no new alert
         assertThat(e.notifier.budget).hasSize(1)
-        expense(bank, 900 * R, "Food") // 101%: jumps to 100 alert
-        assertThat(e.notifier.budget.last()).isEqualTo("Food" to 100)
+        expense(bank, 900 * R, "Food") // 101%: over the limit → a single "exceeded" alert (100% is recorded silently)
+        assertThat(e.notifier.budget.last()).isEqualTo("Food" to BudgetAlertChecker.EXCEEDED)
         assertThat(e.notifier.budget).hasSize(2)
 
         fails { e.budgets.save(null, e.cat("Food"), ym, 1 * R) } // duplicate for the month

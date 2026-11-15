@@ -43,6 +43,7 @@ class OnboardingViewModel @Inject constructor(
 
     fun next(step: OnboardingStep) = _s.update { it.copy(step = step, error = null) }
     fun setName(v: String) = _s.update { it.copy(name = v) }
+
     fun setCurrency(v: String) = _s.update { it.copy(currency = v) }
     fun setPinLength(n: Int) = _s.update { it.copy(pinLength = n, pin = "", error = null) }
 

@@ -57,7 +57,7 @@ import com.mymoney.app.ui.components.MoneyText
 import com.mymoney.app.ui.components.PillTabs
 import com.mymoney.app.ui.components.StatTile
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import java.time.LocalDate
 import java.time.YearMonth
 
@@ -82,7 +82,7 @@ fun SchedulesScreen(nav: NavController, vm: SchedulesViewModel = hiltViewModel()
                     StatTile("Due this month", s.dueThisMonthMinor, MaterialTheme.colorScheme.primary, Icons.Filled.EventRepeat, Modifier.weight(1f))
                     AppCard(Modifier.weight(1f), onClick = { vm.view.value = ScheduleView.OVERDUE }, contentPadding = 12.dp) {
                         Text("Overdue", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text("${s.overdueCount} payment${if (s.overdueCount == 1) "" else "s"}", style = MaterialTheme.typography.titleSmall, color = if (s.overdueCount > 0) FinanceTheme.colors.expense else MaterialTheme.colorScheme.onSurface)
+                        Text("${s.overdueCount} payment${if (s.overdueCount == 1) "" else "s"}", style = MaterialTheme.typography.titleSmall, color = if (s.overdueCount > 0) FinFoxTheme.colors.expense else MaterialTheme.colorScheme.onSurface)
                     }
                 }
             }
@@ -123,9 +123,9 @@ private fun ScheduleRow(d: ScheduleDetail, today: LocalDate, onClick: () -> Unit
             Dates.dueLabel(due, today) + (if (n > 1) " • $n missed" else "") + " • ${frequencyText(s)}"
         }
     }
-    ListRow(AppIcons.forKey(s.category.iconKey), if (overdue) FinanceTheme.colors.expense else MaterialTheme.colorScheme.primary, s.title, sub, onClick = onClick) {
+    ListRow(AppIcons.forKey(s.category.iconKey), if (overdue) FinFoxTheme.colors.expense else MaterialTheme.colorScheme.primary, s.title, sub, onClick = onClick) {
         Column(horizontalAlignment = Alignment.End) {
-            MoneyText(s.amountMinor, style = MaterialTheme.typography.titleSmall, color = if (overdue) FinanceTheme.colors.expense else Color.Unspecified)
+            MoneyText(s.amountMinor, style = MaterialTheme.typography.titleSmall, color = if (overdue) FinFoxTheme.colors.expense else Color.Unspecified)
             if (s.status == ScheduleStatus.ACTIVE) FilledTonalButton(onClick = onPay, contentPadding = PaddingValues(horizontal = 10.dp, vertical = 0.dp), modifier = Modifier.height(30.dp)) {
                 Text("Pay", style = MaterialTheme.typography.labelMedium)
             } else Chip(s.status.name.lowercase().replaceFirstChar { it.uppercase() }, MaterialTheme.colorScheme.onSurfaceVariant)
@@ -176,7 +176,7 @@ private fun CalendarView(all: List<ScheduleDetail>, month: YearMonth, onMonth: (
                             ) {
                                 Text(day.dayOfMonth.toString(), style = MaterialTheme.typography.bodySmall, fontWeight = if (has.isNotEmpty()) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
-                                if (has.isNotEmpty()) Box(Modifier.size(6.dp).clip(CircleShape).background(if (isSel) MaterialTheme.colorScheme.onPrimary else if (overdue) FinanceTheme.colors.expense else MaterialTheme.colorScheme.primary))
+                                if (has.isNotEmpty()) Box(Modifier.size(6.dp).clip(CircleShape).background(if (isSel) MaterialTheme.colorScheme.onPrimary else if (overdue) FinFoxTheme.colors.expense else MaterialTheme.colorScheme.primary))
                             }
                         }
                     }

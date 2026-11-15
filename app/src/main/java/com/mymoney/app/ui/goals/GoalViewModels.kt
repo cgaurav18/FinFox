@@ -40,7 +40,7 @@ data class GoalForm(
     val targetDate: LocalDate? = null,
     val initial: String = "",
     val linkedAccountId: Long? = null,
-    val color: Long = 0xFF7C3AED,
+    val color: Long = com.mymoney.app.ui.components.AppIcons.DEFAULT_COLOR,
     val nameError: String? = null,
     val targetError: String? = null,
 )

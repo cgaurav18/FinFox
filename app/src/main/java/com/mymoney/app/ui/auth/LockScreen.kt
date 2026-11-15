@@ -6,7 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
+import com.mymoney.app.ui.account.LegalLinks
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -53,7 +56,7 @@ fun LockScreen(vm: LockViewModel = hiltViewModel()) {
         if (s.lockedUntil != 0L) vm.clearLockout()
         now = System.currentTimeMillis()
     }
-    val bio = { Biometrics.prompt(context, "Unlock My Money", "Confirm it's you", onSuccess = vm::biometricSuccess) }
+    val bio = { Biometrics.prompt(context, "Unlock FinFox", "Confirm it's you", onSuccess = vm::biometricSuccess) }
     LaunchedEffect(canBio) { if (canBio) bio() }
     BackHandler { Biometrics.findActivity(context)?.moveTaskToBack(true) }
 
@@ -68,7 +71,7 @@ fun LockScreen(vm: LockViewModel = hiltViewModel()) {
         AppLogo(76.dp)
         Spacer(Modifier.height(20.dp))
         Text("Welcome back", style = MaterialTheme.typography.headlineSmall)
-        Text("Enter your PIN to continue", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(if (canBio) "Enter your PIN or use your fingerprint" else "Enter your PIN to continue", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Spacer(Modifier.height(28.dp))
         PinDots(sec.pinLength, s.entered.length, s.error != null)
         Spacer(Modifier.height(12.dp))
@@ -83,6 +86,7 @@ fun LockScreen(vm: LockViewModel = hiltViewModel()) {
         PinPad(onDigit = vm::digit, onBackspace = vm::backspace, onBiometric = if (canBio) bio else null, enabled = !lockedOut)
         Spacer(Modifier.height(12.dp))
         TextButton(onClick = { vm.showForgot(true) }) { Text("Forgot PIN?") }
+        LegalLinks()
     }
     if (s.showForgot) ForgotPinDialog(vm, canBio) { vm.showForgot(false) }
 }

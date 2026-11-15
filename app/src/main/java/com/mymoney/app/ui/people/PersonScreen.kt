@@ -40,7 +40,7 @@ import com.mymoney.app.ui.components.MoneyText
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.components.TonalButton
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @Composable
 fun PersonScreen(nav: NavController, vm: PersonViewModel = hiltViewModel()) {
@@ -49,7 +49,7 @@ fun PersonScreen(nav: NavController, vm: PersonViewModel = hiltViewModel()) {
     var edit by remember { mutableStateOf(false) }
     var del by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { vm.done.collect { nav.popBackStack() } }
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     AppScaffold(
         title = p?.name ?: "Person", onBack = { nav.popBackStack() },
         actions = {

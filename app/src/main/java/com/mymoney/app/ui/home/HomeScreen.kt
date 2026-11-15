@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -40,8 +41,14 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
+import androidx.compose.material.icons.filled.CloudOff
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -52,6 +59,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -74,7 +83,7 @@ import com.mymoney.app.ui.components.MoneyText
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.components.StatTile
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import com.mymoney.app.ui.transactions.TxnRow
 import java.time.LocalDate
 
@@ -82,14 +91,30 @@ import java.time.LocalDate
 fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
     val s by vm.state.collectAsStateWithLifecycle()
     val hidden by vm.balanceHidden.collectAsStateWithLifecycle()
+    val profile by vm.profile.collectAsStateWithLifecycle()
+    val unreadVm: com.mymoney.app.ui.notifications.UnreadCountViewModel = hiltViewModel()
+    val unread by unreadVm.unread.collectAsStateWithLifecycle()
     if (s.loading) { LoadingState(); return }
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
+    Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.TopCenter) {
     LazyColumn(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding(),
+        Modifier.widthIn(max = com.mymoney.app.ui.components.MaxContentWidth).fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Header(s.name) { nav.navigate(Routes.SETTINGS) } }
+        item { Header(s.name, null, unread, { nav.navigate(Routes.NOTIFICATIONS) }) { nav.navigate(Routes.SETTINGS) } }
+        if (profile.driveConnected && profile.driveNeedsReauth) item {
+            AppCard(onClick = { nav.navigate(Routes.BACKUP) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.CloudOff, null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Reconnect Google Drive", style = MaterialTheme.typography.titleSmall)
+                        Text("Automatic backups are paused because Google needs your permission again.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
         item { BalanceCard(s, hidden, vm::toggleHidden) { nav.navigate(Routes.ACCOUNTS) } }
         item { QuickActions(nav) }
         if (s.accountCount == 0) item {
@@ -157,19 +182,25 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
             }
         }
     }
+    }
 }
 
 @Composable
-private fun Header(name: String, onProfile: () -> Unit) {
+private fun Header(name: String, photoUrl: String?, unread: Int, onNotifications: () -> Unit, onProfile: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+        com.mymoney.app.ui.auth.AppLogo(44.dp)
+        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text("My Money", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+            Text("FinFox", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             Text(greeting() + if (name.isNotBlank()) ", ${name.substringBefore(' ')}" else "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Box(
-            Modifier.size(42.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary).clickable(onClick = onProfile),
-            contentAlignment = Alignment.Center,
-        ) { Text(name.trim().firstOrNull()?.uppercase() ?: "M", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = 18.sp) }
+        IconButton(onClick = onNotifications) {
+            BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 99) "99+" else unread.toString()) } }) {
+                Icon(Icons.Filled.Notifications, if (unread > 0) "Notifications, $unread unread" else "Notifications")
+            }
+        }
+        Spacer(Modifier.width(4.dp))
+        Box(Modifier.clip(CircleShape).clickable(onClick = onProfile)) { com.mymoney.app.ui.account.Avatar(photoUrl, name, 42.dp) }
     }
 }
 
@@ -178,20 +209,24 @@ private fun greeting(): String = when (java.time.LocalTime.now().hour) { in 5..1
 @Composable
 private fun BalanceCard(s: HomeState, hidden: Boolean, onToggle: () -> Unit, onClick: () -> Unit) {
     val currency = LocalCurrency.current
+    val onG = FinFoxTheme.colors.onGradient
     fun fmt(v: Long) = if (hidden) Money.symbolFor(currency) + " •••••" else Money.format(v, currency)
+    val shown = animatedMinor(s.totals.availableMinor)
     Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(FinanceTheme.colors.headerGradient).clickable(onClick = onClick).padding(20.dp)
+        Modifier.fillMaxWidth().clip(com.mymoney.app.ui.theme.FinFoxShapes.heroCard).background(FinFoxTheme.colors.headerGradient).clickable(onClick = onClick).padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Total available balance", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text("Total available balance", color = onG.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
-                Icon(if (hidden) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (hidden) "Show balance" else "Hide balance", tint = Color.White)
+                Icon(if (hidden) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (hidden) "Show balance" else "Hide balance", tint = onG)
             }
         }
-        Text(fmt(s.totals.availableMinor), color = Color.White, fontSize = 32.sp, fontWeight = FontWeight.Bold, maxLines = 1)
-        Text("Bank + cash. Credit limits aren't counted.", color = Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+        Text(fmt(shown), color = onG, style = MaterialTheme.typography.displayMedium.copy(fontSize = 32.sp), maxLines = 1,
+            modifier = Modifier.semantics { contentDescription = if (hidden) "Balance hidden" else "Total available balance ${Money.format(s.totals.availableMinor, currency)}" })
+        Text("Bank + cash. Credit limits aren't counted.", color = onG.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(16.dp))
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = 0.14f)).padding(12.dp)) {
+        // Plum scrim keeps white text readable where the gradient turns orange.
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(com.mymoney.app.ui.theme.FinFoxPalette.DeepPlum.copy(alpha = 0.32f)).padding(12.dp)) {
             BalancePart("Bank", fmt(s.totals.bankMinor), Icons.Filled.AccountBalance, Modifier.weight(1f))
             BalancePart("Cash", fmt(s.totals.cashMinor), Icons.Filled.AccountBalanceWallet, Modifier.weight(1f))
             BalancePart("Card due", fmt(s.totals.creditOutstandingMinor), Icons.Filled.CreditCard, Modifier.weight(1f))
@@ -199,45 +234,55 @@ private fun BalanceCard(s: HomeState, hidden: Boolean, onToggle: () -> Unit, onC
     }
 }
 
+/** Animates a money amount from its previous value (balance updates), honouring reduced motion. */
+@Composable
+private fun animatedMinor(target: Long): Long {
+    val reduced = FinFoxTheme.reducedMotion
+    val anim = remember { androidx.compose.animation.core.Animatable(target.toFloat()) }
+    LaunchedEffect(target) {
+        if (reduced) anim.snapTo(target.toFloat()) else anim.animateTo(target.toFloat(), androidx.compose.animation.core.tween(700))
+    }
+    // Float only drives the transition; the final frame always shows the exact Long amount.
+    return if (anim.isRunning) kotlin.math.round(anim.value / 100f).toLong() * 100 else target
+}
+
 @Composable
 private fun BalancePart(label: String, value: String, icon: ImageVector, modifier: Modifier) {
+    val onG = FinFoxTheme.colors.onGradient
     Column(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(icon, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
+            Icon(icon, null, tint = onG.copy(alpha = 0.8f), modifier = Modifier.size(14.dp))
             Spacer(Modifier.width(4.dp))
-            Text(label, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
+            Text(label, color = onG.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
         }
-        Text(value, color = Color.White, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(value, color = onG, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 
-private data class QA(val label: String, val icon: ImageVector, val color: Long, val route: String)
+private data class QA(val label: String, val icon: ImageVector, val color: Color, val route: String)
 
 @Composable
 private fun QuickActions(nav: NavController) {
+    val fin = FinFoxTheme.colors
     val actions = listOf(
-        QA("Add Expense", Icons.Filled.ArrowUpward, 0xFFDC2626, Routes.txnEdit(type = TxnType.EXPENSE.name)),
-        QA("Add Income", Icons.Filled.ArrowDownward, 0xFF16A34A, Routes.txnEdit(type = TxnType.INCOME.name)),
-        QA("Transfer", Icons.Filled.SwapHoriz, 0xFF2563EB, Routes.txnEdit(type = TxnType.TRANSFER.name)),
-        QA("Accounts", Icons.Filled.AddCard, 0xFF7C3AED, Routes.ACCOUNTS),
-        QA("Scheduled", Icons.Filled.EventRepeat, 0xFFF97316, Routes.SCHEDULES),
-        QA("Give / Receive", Icons.Filled.Groups, 0xFF0891B2, Routes.PEOPLE),
-        QA("Budgets", Icons.Filled.PieChart, 0xFFDB2777, Routes.BUDGETS),
-        QA("Reports", Icons.Filled.BarChart, 0xFF5B21B6, Routes.REPORTS),
+        QA("Add Expense", Icons.Filled.ArrowUpward, fin.expense, Routes.txnEdit(type = TxnType.EXPENSE.name)),
+        QA("Add Income", Icons.Filled.ArrowDownward, fin.income, Routes.txnEdit(type = TxnType.INCOME.name)),
+        QA("Transfer Money", Icons.Filled.SwapHoriz, fin.transfer, Routes.txnEdit(type = TxnType.TRANSFER.name)),
+        QA("Accounts", Icons.Filled.AddCard, MaterialTheme.colorScheme.primary, Routes.ACCOUNTS),
+        QA("Scheduled Payments", Icons.Filled.EventRepeat, fin.warning, Routes.SCHEDULES),
+        QA("Give / Receive", Icons.Filled.Groups, fin.accent, Routes.PEOPLE),
     )
     AppCard(contentPadding = 8.dp) {
-        actions.chunked(4).forEach { row ->
+        actions.chunked(3).forEach { row ->
             Row(Modifier.fillMaxWidth()) {
                 row.forEach { a ->
                     Column(
-                        Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable {
-                            if (a.route == Routes.REPORTS) nav.navigate(Routes.REPORTS) { launchSingleTop = true } else nav.navigate(a.route)
-                        }.padding(vertical = 10.dp),
+                        Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { nav.navigate(a.route) }.padding(vertical = 10.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        IconBadge(a.icon, Color(a.color), 44.dp)
+                        IconBadge(a.icon, a.color, 44.dp)
                         Spacer(Modifier.height(6.dp))
-                        Text(a.label, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(a.label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
                     }
                 }
             }
@@ -254,7 +299,7 @@ private fun LoanTile(label: String, amount: Long, overdue: Long, color: Color, i
             Column {
                 Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 MoneyText(amount, style = MaterialTheme.typography.titleSmall)
-                if (overdue > 0) Text("${Money.format(overdue, LocalCurrency.current)} overdue", style = MaterialTheme.typography.labelSmall, color = FinanceTheme.colors.expense)
+                if (overdue > 0) Text("${Money.format(overdue, LocalCurrency.current)} overdue", style = MaterialTheme.typography.labelSmall, color = FinFoxTheme.colors.expense)
             }
         }
     }
@@ -264,8 +309,8 @@ private fun LoanTile(label: String, amount: Long, overdue: Long, color: Color, i
 fun UpcomingRow(d: ScheduleDetail, today: LocalDate, onClick: () -> Unit) {
     val due = LocalDate.ofEpochDay(d.schedule.nextDueEpochDay)
     val overdue = due.isBefore(today)
-    ListRow(AppIcons.forKey(d.schedule.category.iconKey), if (overdue) FinanceTheme.colors.expense else MaterialTheme.colorScheme.primary, d.schedule.title,
+    ListRow(AppIcons.forKey(d.schedule.category.iconKey), if (overdue) FinFoxTheme.colors.expense else MaterialTheme.colorScheme.primary, d.schedule.title,
         "${Dates.dueLabel(due, today)} • ${Dates.formatDay(due)}", onClick = onClick) {
-        MoneyText(d.schedule.amountMinor, style = MaterialTheme.typography.titleSmall, color = if (overdue) FinanceTheme.colors.expense else Color.Unspecified)
+        MoneyText(d.schedule.amountMinor, style = MaterialTheme.typography.titleSmall, color = if (overdue) FinFoxTheme.colors.expense else Color.Unspecified)
     }
 }

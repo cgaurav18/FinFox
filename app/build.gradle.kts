@@ -23,8 +23,8 @@ android {
         applicationId = "com.mymoney.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 3
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -113,6 +113,17 @@ dependencies {
     implementation(libs.splashscreen)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+    // Home screen widgets
+    implementation(libs.glance.appwidget)
+    implementation(libs.glance.material3)
+    // Google Drive authorization (AuthorizationClient). No app sign-in.
+    implementation(libs.play.services.auth)
+    // Google Drive REST
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.kotlinx.serialization)
+    implementation(libs.okhttp)
+    // Argon2id for backup recovery passphrases
+    implementation(libs.bouncycastle)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 
@@ -126,6 +137,8 @@ dependencies {
     testImplementation(libs.work.testing)
     testImplementation(platform(libs.compose.bom))
     testImplementation(libs.compose.ui.test.junit4)
+    testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.glance.appwidget.testing)
 
     androidTestImplementation(libs.androidx.test.ext.junit)
     androidTestImplementation(libs.androidx.test.runner)

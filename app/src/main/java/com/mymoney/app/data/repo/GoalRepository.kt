@@ -7,7 +7,11 @@ import com.mymoney.app.core.Money
 import com.mymoney.app.data.db.AccountType
 import com.mymoney.app.data.db.AppDatabase
 import com.mymoney.app.data.db.SavingsContributionEntity
+import com.mymoney.app.data.db.NotificationReminderEntity
+import com.mymoney.app.data.db.ReminderRefType
 import com.mymoney.app.data.db.SavingsGoalEntity
+import com.mymoney.app.notifications.GoalAlert
+import com.mymoney.app.notifications.Notifier
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,7 +32,7 @@ data class GoalInput(
  * nothing is double counted. Earmarks for a linked account can't exceed that account's balance.
  */
 @Singleton
-class GoalRepository @Inject constructor(private val db: AppDatabase) {
+class GoalRepository @Inject constructor(private val db: AppDatabase, private val notifier: Notifier) {
     private val dao = db.goalDao()
 
     fun observeGoals(archived: Boolean) = dao.observeGoals(archived)
@@ -71,12 +75,32 @@ class GoalRepository @Inject constructor(private val db: AppDatabase) {
         }
     }
 
-    suspend fun contribute(goalId: Long, amountMinor: Long, dateMillis: Long, note: String?) = db.withTransaction {
-        val g = dao.getById(goalId) ?: throw FinanceException("Goal not found")
-        if (g.archived) throw FinanceException("Goal is archived")
-        if (amountMinor <= 0) throw FinanceException("Amount must be greater than zero")
-        checkEarmark(goalId, g.linkedAccountId, dao.savedFor(goalId) + amountMinor)
-        dao.insertContribution(SavingsContributionEntity(goalId = goalId, amountMinor = amountMinor, dateMillis = dateMillis, note = note?.trim()?.takeIf { it.isNotEmpty() }, createdAt = Dates.nowMillis()))
+    suspend fun contribute(goalId: Long, amountMinor: Long, dateMillis: Long, note: String?): Long {
+        val id = db.withTransaction {
+            val g = dao.getById(goalId) ?: throw FinanceException("Goal not found")
+            if (g.archived) throw FinanceException("Goal is archived")
+            if (amountMinor <= 0) throw FinanceException("Amount must be greater than zero")
+            checkEarmark(goalId, g.linkedAccountId, dao.savedFor(goalId) + amountMinor)
+            dao.insertContribution(SavingsContributionEntity(goalId = goalId, amountMinor = amountMinor, dateMillis = dateMillis, note = note?.trim()?.takeIf { it.isNotEmpty() }, createdAt = Dates.nowMillis()))
+        }
+        checkMilestones(goalId)
+        return id
+    }
+
+    /** Announces each milestone (25/50/75%) and completion once per goal. Returns the newly announced alert. */
+    suspend fun checkMilestones(goalId: Long): GoalAlert? {
+        val g = dao.getById(goalId) ?: return null
+        if (g.targetMinor <= 0) return null
+        val saved = dao.savedFor(goalId)
+        val pct = Money.percent(saved, g.targetMinor)
+        val reached = listOf(GoalAlert.MILESTONE_25, GoalAlert.MILESTONE_50, GoalAlert.MILESTONE_75, GoalAlert.COMPLETED).filter { pct >= it.percent }
+        var announce: GoalAlert? = null
+        reached.forEach { a ->
+            if (db.reminderDao().insertIgnore(NotificationReminderEntity(refType = ReminderRefType.GOAL, refId = goalId, dueKey = a.percent.toLong(), notifiedAt = Dates.nowMillis())) != -1L) announce = a
+        }
+        val settings = db.settingsDao().get()
+        announce?.let { notifier.goalAlert(goalId, g.name, it, saved, g.targetMinor, g.targetEpochDay?.let(LocalDate::ofEpochDay), settings?.currency ?: "INR") }
+        return announce
     }
 
     suspend fun withdraw(goalId: Long, amountMinor: Long, dateMillis: Long, note: String?) = db.withTransaction {
@@ -100,5 +124,8 @@ class GoalRepository @Inject constructor(private val db: AppDatabase) {
         dao.update(g.copy(archived = archived, updatedAt = Dates.nowMillis()))
     }
 
-    suspend fun delete(id: Long) = db.withTransaction { dao.deleteById(id) }
+    suspend fun delete(id: Long) = db.withTransaction {
+        dao.deleteById(id)
+        db.reminderDao().deleteFor(ReminderRefType.GOAL.name, id)
+    }
 }

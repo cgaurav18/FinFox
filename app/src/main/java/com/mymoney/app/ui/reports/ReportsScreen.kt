@@ -59,7 +59,7 @@ import com.mymoney.app.ui.components.LocalCurrency
 import com.mymoney.app.ui.components.MoneyText
 import com.mymoney.app.ui.components.ProgressBar
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -71,7 +71,7 @@ fun ReportsScreen(nav: NavController, vm: ReportsViewModel = hiltViewModel()) {
     var exportMenu by remember { mutableStateOf(false) }
     val csv = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri -> uri?.let(vm::exportCsv) }
     val pdf = rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/pdf")) { uri -> uri?.let(vm::exportPdf) }
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     val currency = LocalCurrency.current
     AppScaffold(
         title = "Reports",

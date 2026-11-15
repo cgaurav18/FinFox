@@ -72,8 +72,11 @@ object AppIcons {
         AccountType.CASH -> Icons.Filled.AccountBalanceWallet
     }
 
+    /** Colours users can pick for accounts, categories and goals (FinFox brand first, then status hues). */
     val palette: List<Long> = listOf(
-        0xFF7C3AED, 0xFF5B21B6, 0xFF2563EB, 0xFF0891B2, 0xFF16A34A, 0xFF65A30D, 0xFFF59E0B,
-        0xFFF97316, 0xFFDC2626, 0xFFDB2777, 0xFF9333EA, 0xFF64748B,
+        0xFF5B0FA6, 0xFF7C20D9, 0xFFFF7417, 0xFFFFB21C, 0xFF2563EB, 0xFF0D9488, 0xFF16A34A,
+        0xFFD97706, 0xFFDC2626, 0xFFDB2777, 0xFF0891B2, 0xFF64748B,
     )
+    /** Default colour for new accounts / goals / categories: Royal Violet. */
+    const val DEFAULT_COLOR: Long = 0xFF7C20D9
 }
