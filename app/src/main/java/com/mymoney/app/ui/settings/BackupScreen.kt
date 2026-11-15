@@ -48,7 +48,6 @@ import com.mymoney.app.backup.BackupCrypto
 import com.mymoney.app.cloud.BackupWorker
 import com.mymoney.app.core.Dates
 import com.mymoney.app.data.db.BackupFrequency
-import com.mymoney.app.ui.account.Avatar
 import com.mymoney.app.ui.cloud.CloudBackupViewModel
 import com.mymoney.app.ui.cloud.DriveConsentLauncher
 import com.mymoney.app.ui.cloud.PassphraseDialog
@@ -98,17 +97,15 @@ fun BackupScreen(nav: NavController, vm: BackupViewModel = hiltViewModel(), clou
             SectionHeader("Google Drive backup")
             AppCard(contentPadding = 0.dp) {
                 ListRow(Icons.Filled.CloudUpload, MaterialTheme.colorScheme.primary,
-                    if (p.signedIn) p.email ?: "Google account" else "Not signed in",
+                    if (p.driveConnected) p.email ?: "Google Drive" else "Google Drive",
                     when {
-                        !p.signedIn -> "Sign in with Google to back up to your Drive"
                         p.driveNeedsReauth -> "Google Drive permission expired — tap to reconnect"
                         p.driveConnected -> "Google Drive connected (app folder only)"
                         else -> "Google Drive not connected — tap to connect"
                     },
-                    onClick = { nav.navigate(if (p.signedIn) Routes.DRIVE else Routes.GOOGLE_ACCOUNT) },
+                    onClick = { nav.navigate(Routes.DRIVE) },
                 ) {
-                    if (p.signedIn) Avatar(p.photoUrl, p.displayName, 30.dp)
-                    else Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 if (p.driveNeedsReauth) {
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -122,7 +119,7 @@ fun BackupScreen(nav: NavController, vm: BackupViewModel = hiltViewModel(), clou
                 Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp)) {
                     val last = s.lastSuccess
                     KeyValueRow("Status", when {
-                        !p.signedIn || !p.driveConnected -> "Not connected"
+                        !p.driveConnected -> "Not connected"
                         p.driveNeedsReauth -> "Needs reconnection"
                         s.backupRunning -> "Backing up…"
                         else -> "Ready"
@@ -157,7 +154,7 @@ fun BackupScreen(nav: NavController, vm: BackupViewModel = hiltViewModel(), clou
 
             PrimaryButton("Backup Now", cloudVm::backupNow, loading = s.backupRunning || cloudBusy, icon = Icons.Filled.Backup)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                SecondaryButton("Restore Backup", { nav.navigate(Routes.BACKUP_HISTORY) }, Modifier.weight(1f), icon = Icons.Filled.Restore, enabled = p.signedIn && p.driveConnected)
+                SecondaryButton("Restore Backup", { nav.navigate(Routes.BACKUP_HISTORY) }, Modifier.weight(1f), icon = Icons.Filled.Restore, enabled = p.driveConnected)
                 SecondaryButton("History", { nav.navigate(Routes.BACKUP_HISTORY) }, Modifier.weight(1f), icon = Icons.Filled.History)
             }
             if (p.driveConnected) SecondaryButton("Disconnect Google Drive", { disconnect = true }, Modifier.fillMaxWidth(), icon = Icons.Filled.CloudOff, destructive = true)

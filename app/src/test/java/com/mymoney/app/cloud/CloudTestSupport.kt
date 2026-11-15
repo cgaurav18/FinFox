@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.Intent
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.test.core.app.ApplicationProvider
-import com.mymoney.app.auth.GoogleAccountInfo
 import com.mymoney.app.backup.BackupCrypto
 import com.mymoney.app.backup.BackupKeyStore
 import com.mymoney.app.backup.BackupManager
@@ -66,9 +65,9 @@ class FakeAuthorizer : DriveAuthorizer {
             val ctx = ApplicationProvider.getApplicationContext<Context>()
             return DriveAuthResult.NeedsUser(PendingIntent.getActivity(ctx, 0, Intent(), PendingIntent.FLAG_IMMUTABLE))
         }
-        return DriveAuthResult.Granted("token-${++issued}")
+        return DriveAuthResult.Granted("token-${++issued}", email)
     }
-    override fun tokenFromConsentResult(data: Intent?) = "consent-token"
+    override fun tokenFromConsentResult(data: Intent?) = DriveAuthResult.Granted("consent-token", "user@example.com")
     override suspend fun invalidate(token: String) { invalidated += token }
     override suspend fun revoke(email: String?) { revoked += email }
 }
@@ -83,8 +82,5 @@ class Device(val drive: FakeDrive, dir: File, name: String) {
     val profiles = ProfileRepository(env.db)
     val service = CloudBackupService(env.db, manager, keys, drive, auth, profiles)
 
-    suspend fun signInAndConnect(email: String = "user@example.com") {
-        profiles.onSignedIn(GoogleAccountInfo("uid-$email", email, "Test User", null))
-        profiles.setDriveConnected(true)
-    }
+    suspend fun signInAndConnect(email: String = "user@example.com") = profiles.onDriveConnected(email)
 }

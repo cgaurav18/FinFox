@@ -8,9 +8,7 @@ import androidx.lifecycle.ProcessLifecycleOwner
 import androidx.work.Configuration
 import com.mymoney.app.data.db.AppDatabase
 import com.mymoney.app.data.db.DefaultData
-import com.mymoney.app.auth.GoogleAuthGateway
 import com.mymoney.app.cloud.BackupWorker
-import com.mymoney.app.data.repo.ProfileRepository
 import com.mymoney.app.notifications.NotificationDispatcher
 import com.mymoney.app.widgets.WidgetUpdater
 import com.mymoney.app.notifications.ReminderWorker
@@ -31,22 +29,7 @@ class MyMoneyApp : Application(), Configuration.Provider {
     @Inject lateinit var lock: AppLockManager
     @Inject lateinit var pins: PinManager
 
-    @Inject lateinit var google: GoogleAuthGateway
-    @Inject lateinit var profiles: ProfileRepository
-
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-
-    /**
-     * If Firebase no longer has a session (signed out elsewhere / account removed) the local profile is
-     * marked signed out. Offline, Firebase keeps its cached session, so offline use is never blocked.
-     */
-    private suspend fun reconcileGoogleSession() {
-        val p = profiles.get()
-        if (!p.signedIn || !google.isConfigured()) return
-        val user = google.currentUser()
-        if (user == null) profiles.onSignedOut()
-        else if (user.uid != p.googleUid) profiles.onSignedIn(user)
-    }
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -58,7 +41,6 @@ class MyMoneyApp : Application(), Configuration.Provider {
             DefaultData.ensureSeeded(db)
             // Keep the automatic-backup schedule in step with saved preferences (e.g. after an app update).
             db.cloudBackupDao().getPrefs()?.let { BackupWorker.syncSchedule(this@MyMoneyApp, it) }
-            reconcileGoogleSession()
         }
         ReminderWorker.schedule(this)
         WidgetUpdater.observe(this, db, appScope)

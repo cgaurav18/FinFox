@@ -14,10 +14,6 @@
 -keep,allowobfuscation,allowshrinking class kotlin.coroutines.Continuation
 -keepattributes Signature, Exceptions, RuntimeVisibleAnnotations, RuntimeVisibleParameterAnnotations
 
-# Credential Manager loads the Play services provider reflectively.
--if class androidx.credentials.CredentialManager
--keep class androidx.credentials.playservices.** { *; }
-
 # Argon2id (BouncyCastle lightweight API only; JCE provider classes are unused)
 -dontwarn org.bouncycastle.**
 -dontwarn javax.naming.**

@@ -57,7 +57,6 @@ import com.mymoney.app.core.Money
 import com.mymoney.app.data.db.ThemeMode
 import com.mymoney.app.security.PinManager
 import com.mymoney.app.ui.auth.Biometrics
-import com.mymoney.app.ui.account.Avatar
 import com.mymoney.app.ui.components.AppCard
 import com.mymoney.app.ui.components.AppScaffold
 import com.mymoney.app.ui.components.AppTextField
@@ -118,25 +117,13 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     }
                 }
             }
-            item { SectionHeader("Account") }
-            item {
-                AppCard(contentPadding = 0.dp) {
-                    ListRow(Icons.Filled.AccountCircle, primary, if (profile.signedIn) profile.displayName ?: "Google account" else "Google account",
-                        if (profile.signedIn) "${profile.email} · Sign out or switch account" else "Not signed in · Sign in with Google",
-                        onClick = { nav.navigate(Routes.GOOGLE_ACCOUNT) }) {
-                        if (profile.signedIn) Avatar(profile.photoUrl, profile.displayName, 30.dp)
-                        else Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
             item { SectionHeader("Cloud Backup") }
             item {
                 AppCard(contentPadding = 0.dp) {
                     Row2(Icons.Filled.AddToDrive, fin.savings, if (profile.driveConnected) "Google Drive connected" else "Connect Google Drive",
                         when {
-                            !profile.signedIn -> "Sign in first"
                             profile.driveNeedsReauth -> "Permission expired — reconnect"
-                            profile.driveConnected -> "App folder only"
+                            profile.driveConnected -> profile.email ?: "App folder only"
                             else -> "Encrypted backups in your own Drive"
                         }) { nav.navigate(Routes.DRIVE) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
@@ -209,7 +196,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
         onDismissRequest = { about = false },
         title = { Text("FinFox ${BuildConfig.VERSION_NAME}") },
         text = {
-            Text("Personal finance & expense tracker.\n\n• Works fully offline. The network is used only for optional Google Sign-In and your own Google Drive backups.\n• All financial data is stored on this device.\n• Your PIN is stored as a salted hash protected by the Android Keystore.\n• Backups are encrypted on the device (AES-256-GCM, Argon2id key) before upload.\n• FinFox never asks for bank passwords, card numbers, CVVs or UPI PINs, and never moves real money.")
+            Text("Personal finance & expense tracker.\n\n• Works fully offline. The network is used only for your optional Google Drive backups.\n• All financial data is stored on this device.\n• Your PIN is stored as a salted hash protected by the Android Keystore.\n• Backups are encrypted on the device (AES-256-GCM, Argon2id key) before upload.\n• FinFox never asks for bank passwords, card numbers, CVVs or UPI PINs, and never moves real money.")
         },
         confirmButton = { TextButton(onClick = { about = false }) { Text("OK") } },
     )

@@ -27,7 +27,6 @@ object Routes {
     const val CATEGORIES = "categories"
     const val CHANGE_PIN = "change-pin"
     const val BACKUP = "backup"
-    const val GOOGLE_ACCOUNT = "google-account"
     const val DRIVE = "drive"
     const val BACKUP_HISTORY = "backup-history"
     const val RESTORE = "restore?fileId={fileId}&uri={uri}"

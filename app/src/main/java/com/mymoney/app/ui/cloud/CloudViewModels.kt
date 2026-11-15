@@ -63,7 +63,7 @@ data class CloudState(
     val safetyCopyAt: Long? = null,
 ) {
     val lastSuccess get() = history.firstOrNull { it.status == com.mymoney.app.data.db.BackupStatus.SUCCESS }
-    val ready get() = profile.signedIn && profile.driveConnected && !profile.driveNeedsReauth && hasPassphrase
+    val ready get() = profile.driveConnected && !profile.driveNeedsReauth && hasPassphrase
 }
 
 /** Google Drive connection, recovery passphrase, automatic backup settings and "Backup Now". */
@@ -109,13 +109,12 @@ class CloudBackupViewModel @Inject constructor(
 
     fun beforeExternalActivity() { lock.suppressNextBackgroundLock = true }
 
-    /** Requests the drive.appdata grant — separately from sign-in, only when the user asks for it. */
+    /** Google shows its account picker/consent; only the app-private drive.appdata scope is granted. */
     fun connectDrive() = launchSafe {
         val p = profiles.get()
-        if (!p.signedIn) throw CloudBackupException.NotSignedIn()
         try {
             when (val r = authorizer.authorize(p.email)) {
-                is DriveAuthResult.Granted -> { profiles.setDriveConnected(true); bus.show("Google Drive connected") }
+                is DriveAuthResult.Granted -> { profiles.onDriveConnected(r.email); bus.success("Google Drive connected" + (r.email?.let { " ($it)" } ?: "")) }
                 is DriveAuthResult.NeedsUser -> { beforeExternalActivity(); _consent.send(r.pendingIntent) }
             }
         } catch (e: DriveAuthException) { bus.show(e.message ?: "Couldn't connect Google Drive") }
@@ -124,9 +123,10 @@ class CloudBackupViewModel @Inject constructor(
     fun onConsentResult(resultCode: Int, data: Intent?) = launchSafe {
         if (resultCode != Activity.RESULT_OK) { bus.show("Google Drive wasn't connected"); return@launchSafe }
         try {
-            authorizer.tokenFromConsentResult(data) // token is used only to confirm the grant; it isn't stored
-            profiles.setDriveConnected(true)
-            bus.show("Google Drive connected")
+            // The token only confirms the grant; it isn't stored. The account email is kept for silent re-authorization.
+            val g = authorizer.tokenFromConsentResult(data)
+            profiles.onDriveConnected(g.email)
+            bus.success("Google Drive connected" + (g.email?.let { " ($it)" } ?: ""))
         } catch (e: DriveAuthException) { bus.show(e.message ?: "Google Drive permission was not granted") }
     }
 
@@ -134,7 +134,7 @@ class CloudBackupViewModel @Inject constructor(
         cloud.updatePrefs { it.copy(autoBackupEnabled = false) }
         BackupWorker.syncSchedule(context, cloud.getPrefs())
         try { authorizer.revoke(profiles.get().email) } catch (_: Exception) { /* offline: local disconnect still applies */ }
-        profiles.setDriveConnected(false)
+        profiles.onDriveDisconnected()
     }
 
     /** Returns an error message, or null on success. */
@@ -149,7 +149,6 @@ class CloudBackupViewModel @Inject constructor(
     fun backupNow() = launchSafe {
         val s = state.value
         when {
-            !s.profile.signedIn -> throw CloudBackupException.NotSignedIn()
             !s.profile.driveConnected || s.profile.driveNeedsReauth -> { connectDrive(); return@launchSafe }
             !s.hasPassphrase -> throw CloudBackupException.NoPassphrase()
         }

@@ -124,8 +124,8 @@ class CloudBackupServiceTest {
         assertThrows(CloudBackupException.NoPassphrase::class.java) { runBlocking { a.service.backupNow(BackupTrigger.MANUAL) } }
         a.profiles.setDriveConnected(false)
         assertThrows(CloudBackupException.DriveNotConnected::class.java) { runBlocking { a.service.backupNow(BackupTrigger.MANUAL) } }
-        a.profiles.onSignedOut()
-        assertThrows(CloudBackupException.NotSignedIn::class.java) { runBlocking { a.service.backupNow(BackupTrigger.MANUAL) } }
+        a.profiles.onDriveDisconnected()
+        assertThrows(CloudBackupException.DriveNotConnected::class.java) { runBlocking { a.service.backupNow(BackupTrigger.MANUAL) } }
         assertThat(drive.files).isEmpty()
     }
 

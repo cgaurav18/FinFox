@@ -35,7 +35,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.mymoney.app.core.Dates
-import com.mymoney.app.ui.account.Avatar
+import androidx.compose.foundation.layout.size
 import com.mymoney.app.ui.components.AppCard
 import com.mymoney.app.ui.components.AppScaffold
 import com.mymoney.app.ui.components.Chip
@@ -60,12 +60,11 @@ fun DriveConnectionScreen(nav: NavController, vm: CloudBackupViewModel = hiltVie
         Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             AppCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Avatar(if (p.signedIn) p.photoUrl else null, p.displayName, 44.dp)
+                    androidx.compose.material3.Icon(Icons.Filled.AddToDrive, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(36.dp))
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
-                        Text(if (p.signedIn) p.email ?: "Google account" else "Not signed in", style = MaterialTheme.typography.titleSmall)
+                        Text(if (p.driveConnected) p.email ?: "Google Drive" else "Google Drive", style = MaterialTheme.typography.titleSmall)
                         Text(when {
-                            !p.signedIn -> "Sign in with Google first"
                             p.driveConnected && p.driveNeedsReauth -> "Permission expired — reconnect"
                             p.driveConnected -> "Connected ${p.driveConnectedAt?.let { "on " + Dates.formatDay(it) } ?: ""}"
                             else -> "Google Drive not connected"
@@ -78,6 +77,8 @@ fun DriveConnectionScreen(nav: NavController, vm: CloudBackupViewModel = hiltVie
                     }
                 }
             }
+            Text("Tap Connect and choose the Google account whose Drive should hold your backups. No FinFox account or sign-in is needed.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             SectionHeader("What FinFox can access")
             AppCard {
                 Point(Icons.Filled.FolderOff, "Only its own hidden folder", "The drive.appdata permission lets FinFox see only the backup files it creates in a private app folder — not your photos, documents or any other Drive files.")
@@ -85,7 +86,6 @@ fun DriveConnectionScreen(nav: NavController, vm: CloudBackupViewModel = hiltVie
                 Point(Icons.Filled.Key, "Your passphrase, your key", "The key comes from your recovery passphrase (Argon2id) and is never uploaded.")
             }
             when {
-                !p.signedIn -> PrimaryButton("Sign in with Google", { nav.navigate(Routes.GOOGLE_ACCOUNT) }, icon = Icons.Filled.Login)
                 !p.driveConnected || p.driveNeedsReauth -> PrimaryButton(if (p.driveNeedsReauth) "Reconnect Google Drive" else "Connect Google Drive", vm::connectDrive, loading = busy, icon = Icons.Filled.AddToDrive)
                 else -> {
                     if (!s.hasPassphrase) PrimaryButton("Set recovery passphrase", { passphrase = true }, icon = Icons.Filled.Key)

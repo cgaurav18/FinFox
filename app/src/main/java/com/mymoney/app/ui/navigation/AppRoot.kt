@@ -102,7 +102,6 @@ import com.mymoney.app.ui.settings.BackupScreen
 import com.mymoney.app.ui.settings.CategoriesScreen
 import com.mymoney.app.ui.settings.ChangePinScreen
 import com.mymoney.app.ui.settings.SettingsScreen
-import com.mymoney.app.ui.account.GoogleAccountScreen
 import com.mymoney.app.ui.cloud.BackupHistoryScreen
 import com.mymoney.app.ui.cloud.DriveConnectionScreen
 import com.mymoney.app.ui.cloud.RestoreScreen
@@ -267,7 +266,6 @@ private fun AppNavHost(nav: NavHostController) {
         composable(Routes.CATEGORIES) { CategoriesScreen(nav) }
         composable(Routes.CHANGE_PIN) { ChangePinScreen(nav) }
         composable(Routes.BACKUP) { BackupScreen(nav) }
-        composable(Routes.GOOGLE_ACCOUNT) { GoogleAccountScreen(nav) }
         composable(Routes.DRIVE) { DriveConnectionScreen(nav) }
         composable(Routes.BACKUP_HISTORY) { BackupHistoryScreen(nav) }
         composable(Routes.RESTORE, arguments = listOf(strArg("fileId"), strArg("uri"))) { RestoreScreen(nav) }

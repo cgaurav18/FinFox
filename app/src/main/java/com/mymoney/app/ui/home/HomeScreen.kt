@@ -102,8 +102,8 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        item { Header(s.name, profile.photoUrl.takeIf { profile.signedIn }, unread, { nav.navigate(Routes.NOTIFICATIONS) }) { nav.navigate(Routes.SETTINGS) } }
-        if (profile.signedIn && profile.driveConnected && profile.driveNeedsReauth) item {
+        item { Header(s.name, null, unread, { nav.navigate(Routes.NOTIFICATIONS) }) { nav.navigate(Routes.SETTINGS) } }
+        if (profile.driveConnected && profile.driveNeedsReauth) item {
             AppCard(onClick = { nav.navigate(Routes.BACKUP) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Icon(Icons.Filled.CloudOff, null, tint = MaterialTheme.colorScheme.error)

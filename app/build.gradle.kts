@@ -9,18 +9,6 @@ plugins {
     alias(libs.plugins.hilt)
 }
 
-// Firebase: apply google-services only when the project's google-services.json is present (not committed).
-if (file("google-services.json").exists()) apply(plugin = libs.plugins.google.services.get().pluginId)
-
-// Google/Firebase identifiers come from local.properties, -P flags or env vars — never from source control.
-// They are public client identifiers (no client secrets or private keys are ever embedded). See README.
-val localProps = Properties().apply {
-    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
-}
-fun cfg(key: String): String =
-    (project.findProperty(key) as String?) ?: localProps.getProperty(key) ?: System.getenv(key.uppercase().replace('.', '_')) ?: ""
-fun quoted(v: String) = "\"" + v.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
-
 // Release signing is read from keystore.properties (not committed). See README.
 val keystorePropsFile = rootProject.file("keystore.properties")
 val keystoreProps = Properties().apply {
@@ -39,10 +27,6 @@ android {
         versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
-        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", quoted(cfg("mymoney.googleWebClientId")))
-        buildConfigField("String", "FIREBASE_API_KEY", quoted(cfg("mymoney.firebaseApiKey")))
-        buildConfigField("String", "FIREBASE_APP_ID", quoted(cfg("mymoney.firebaseAppId")))
-        buildConfigField("String", "FIREBASE_PROJECT_ID", quoted(cfg("mymoney.firebaseProjectId")))
     }
 
     signingConfigs {
@@ -132,20 +116,14 @@ dependencies {
     // Home screen widgets
     implementation(libs.glance.appwidget)
     implementation(libs.glance.material3)
-    // Google Sign-In (Credential Manager), Drive authorization, Firebase Auth
-    implementation(libs.credentials)
-    implementation(libs.credentials.play.services)
-    implementation(libs.googleid)
+    // Google Drive authorization (AuthorizationClient). No app sign-in.
     implementation(libs.play.services.auth)
-    implementation(platform(libs.firebase.bom))
-    implementation(libs.firebase.auth)
     // Google Drive REST
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
     // Argon2id for backup recovery passphrases
     implementation(libs.bouncycastle)
-    implementation(libs.coil.compose)
     debugImplementation(libs.compose.ui.tooling)
     debugImplementation(libs.compose.ui.test.manifest)
 

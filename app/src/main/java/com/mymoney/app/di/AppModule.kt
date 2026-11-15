@@ -14,8 +14,6 @@ import com.mymoney.app.security.AppLockManager
 import com.mymoney.app.security.KeystoreSecretBox
 import com.mymoney.app.security.PinManager
 import com.mymoney.app.security.SecretBox
-import com.mymoney.app.auth.FirebaseGoogleAuth
-import com.mymoney.app.auth.GoogleAuthGateway
 import com.mymoney.app.backup.BackupKeyStore
 import com.mymoney.app.cloud.DriveAuthorizer
 import com.mymoney.app.cloud.DriveRemote
@@ -74,6 +72,5 @@ object AppModule {
 @InstallIn(SingletonComponent::class)
 abstract class BindingsModule {
     @Binds abstract fun notifier(impl: AndroidNotifier): Notifier
-    @Binds abstract fun googleAuth(impl: FirebaseGoogleAuth): GoogleAuthGateway
     @Binds abstract fun driveAuthorizer(impl: PlayServicesDriveAuthorizer): DriveAuthorizer
 }

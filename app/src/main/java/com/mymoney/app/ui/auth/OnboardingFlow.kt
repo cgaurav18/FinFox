@@ -75,8 +75,7 @@ fun OnboardingFlow(onFinished: () -> Unit, vm: OnboardingViewModel = hiltViewMod
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).systemBarsPadding().imePadding()) {
         AnimatedContent(s.step, transitionSpec = { fadeIn() togetherWith fadeOut() }, label = "onboarding") { step ->
             when (step) {
-                OnboardingStep.INTRO -> IntroPager { vm.next(OnboardingStep.LOGIN) }
-                OnboardingStep.LOGIN -> LoginStep(onGoogle = vm::onGoogleSignedIn, onOffline = { vm.next(OnboardingStep.PROFILE) })
+                OnboardingStep.INTRO -> IntroPager { vm.next(OnboardingStep.PROFILE) }
                 OnboardingStep.PROFILE -> ProfileStep(s, vm)
                 OnboardingStep.CREATE_PIN, OnboardingStep.CONFIRM_PIN -> PinStep(s, vm)
                 OnboardingStep.BIOMETRIC -> BiometricStep(vm)
@@ -142,8 +141,7 @@ private fun ProfileStep(s: OnboardingState, vm: OnboardingViewModel) {
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Spacer(Modifier.height(24.dp))
         StepHeader(Icons.Filled.Person, "Let's set you up",
-            if (s.googleEmail != null) "Signed in as ${s.googleEmail}. Your financial data still stays on this device."
-            else "Everything stays on this device. No account or internet needed.")
+            "Everything stays on this device. No account or internet needed.")
         Spacer(Modifier.height(8.dp))
         AppTextField(s.name, vm::setName, "Your name", error = s.error, capitalization = KeyboardCapitalization.Words, maxLength = 40)
         DropdownField("Currency", Money.supportedCurrencies, s.currency, { "$it (${Money.symbolFor(it).trim()})" }, vm::setCurrency)

@@ -26,7 +26,6 @@ import javax.inject.Singleton
 
 /** Why a cloud backup operation couldn't run. [message] is user facing. */
 sealed class CloudBackupException(message: String, val retryable: Boolean = false) : Exception(message) {
-    class NotSignedIn : CloudBackupException("Sign in with Google to use Google Drive backup")
     class DriveNotConnected : CloudBackupException("Connect Google Drive first")
     class NoPassphrase : CloudBackupException("Set a recovery passphrase before backing up")
     class NeedsReauth : CloudBackupException("Google Drive needs your permission again. Open Backup & Restore to reconnect.")
@@ -65,7 +64,6 @@ class CloudBackupService @Inject constructor(
 
     private suspend fun requireReady(): String? {
         val p = profiles.get()
-        if (!p.signedIn) throw CloudBackupException.NotSignedIn()
         if (!p.driveConnected) throw CloudBackupException.DriveNotConnected()
         return p.email
     }

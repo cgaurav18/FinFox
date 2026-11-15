@@ -21,27 +21,17 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import coil.compose.SubcomposeAsyncImage
 
-/** Google profile photo, falling back to the first initial (offline / no photo). */
+/** Profile initial in a brand-coloured circle. */
 @Composable
 fun Avatar(photoUrl: String?, name: String?, size: Dp = 42.dp, modifier: Modifier = Modifier) {
-    val initial: @Composable () -> Unit = {
-        Box(Modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
-            Text(name?.trim()?.firstOrNull()?.uppercase() ?: "M", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = (size.value * 0.42f).sp)
-        }
+    Box(modifier.size(size).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
+        Text(name?.trim()?.firstOrNull()?.uppercase() ?: "F", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold, fontSize = (size.value * 0.42f).sp)
     }
-    if (photoUrl.isNullOrBlank()) Box(modifier) { initial() }
-    else SubcomposeAsyncImage(
-        model = photoUrl, contentDescription = "Profile photo", contentScale = ContentScale.Crop,
-        modifier = modifier.size(size).clip(CircleShape),
-        loading = { initial() }, error = { initial() },
-    )
 }
 
 enum class LegalDoc(val title: String) { PRIVACY("Privacy Policy"), TERMS("Terms of Use") }
@@ -78,14 +68,14 @@ FinFox is an offline-first personal finance tracker. This policy describes exact
 1. Your financial data stays on your device
 Accounts, transactions, scheduled payments, lending/borrowing, budgets and goals are stored only in a local database on this device. FinFox has no server of its own and never sends your financial records anywhere unless you create a backup.
 
-2. Google Sign-In (optional)
-If you choose "Continue with Google", Google's account picker and Firebase Authentication verify your identity. The app keeps only your Google display name, email address, profile photo link and account id locally. It never sees or stores your Google password and does not store Google access tokens on disk.
+2. No account needed
+FinFox has no sign-in and no FinFox account, and it has no server of its own, so nothing about you is sent to us.
 
-3. Google Drive backup (optional, separate permission)
-Signing in does not give access to your Drive. Only if you connect Google Drive does the app request the "app data" scope, which allows it to see only files it created in a hidden app folder of your own Drive — not your other files. Backups are encrypted on your device with AES-256-GCM using a key derived (Argon2id) from your recovery passphrase before upload. Neither the passphrase nor the key is uploaded; Google cannot read your backups and nor can we. If you lose the passphrase, the backup cannot be recovered.
+3. Google Drive backup (optional)
+Only if you connect Google Drive does the app request the "app data" scope (plus your Google account's email address, to remember which account holds your backups), which allows it to see only files it created in a hidden app folder of your own Drive — not your other files. Backups are encrypted on your device with AES-256-GCM using a key derived (Argon2id) from your recovery passphrase before upload. Neither the passphrase nor the key is uploaded; Google cannot read your backups and nor can we. If you lose the passphrase, the backup cannot be recovered.
 
 4. What backups contain
-Financial records and app preferences. They never contain your PIN, biometric data, Google credentials or tokens, or the encryption key.
+Financial records and app preferences. They never contain your PIN, biometric data, Google tokens, or the encryption key.
 
 5. Notifications and widgets
 Reminders are generated on your device. You can hide amounts on the lock screen and on home screen widgets (privacy mode). Notification history is stored only locally.
@@ -94,7 +84,7 @@ Reminders are generated on your device. You can hide amounts on the lock screen 
 Your PIN is stored as a salted hash protected by the Android Keystore. Android's own cloud backup of app data is disabled.
 
 7. Your choices
-You can use the app fully offline, sign out at any time (your local data is kept), disconnect Google Drive, revoke the app's access, delete backups from Backup History, or erase all data from Settings.
+You can use the app fully offline, disconnect Google Drive at any time (this revokes the app's access; your local data is kept), delete backups from Backup History, or erase all data from Settings.
 
 8. Children
 FinFox is not directed at children under 13.
@@ -116,7 +106,7 @@ You are responsible for the accuracy of the data you enter and for decisions you
 Cloud backups are stored in your own Google Drive and encrypted with your recovery passphrase. Keep the passphrase safe: it cannot be reset or recovered by anyone, and without it an encrypted backup cannot be restored. Keep your recovery code for your PIN in a safe place too.
 
 4. Google services
-Use of Google Sign-In and Google Drive is also subject to Google's terms. You can disconnect them at any time from Settings.
+Use of Google Drive is also subject to Google's terms. You can disconnect them at any time from Settings.
 
 5. Availability
 Background tasks such as automatic backups and reminders are scheduled by Android and may run later than the chosen time to save battery; exact timing is not guaranteed.

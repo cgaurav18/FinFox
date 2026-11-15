@@ -5,7 +5,7 @@
 A native Android app (Kotlin + Jetpack Compose) to track income, expenses, bank accounts, credit cards,
 cash, transfers, scheduled payments (EMI / SIP / bills), money lent and borrowed, budgets, savings goals
 and reports. It is **offline-first**: every financial record lives in the on-device Room database and the
-app is fully usable without an account or a connection. Version 1.1 adds optional Google Sign-In,
+app is fully usable without an account or a connection. Version 1.1 added
 encrypted Google Drive backup & restore, seven home screen widgets, smart notifications and a
 notification center.
 
@@ -21,8 +21,8 @@ notification center.
 adb install -r dist/FinFox-1.2.0-debug.apk
 ```
 
-Without a Google/Firebase configuration (see below) the app still installs and works fully offline;
-"Continue with Google" is shown as unavailable and explains why.
+The app needs no account;
+Drive backup is optional; everything else works offline.
 Or copy the APK to the phone and open it (allow "Install unknown apps" for your file manager).
 
 ### Build from source
@@ -64,8 +64,7 @@ the release APK is built unsigned.
 
 All colours live in `ui/theme/Color.kt` (`FinFoxPalette`) and are applied through `ui/theme/FinFoxTheme.kt`
 (Material 3 light/dark `ColorScheme` + `FinFoxTheme.colors` tokens). UI code doesn't use raw hex values;
-the only literals outside the theme are user-selectable data colours (account/category palette) and
-Google's brand colours on the "Continue with Google" mark.
+the only literals outside the theme are user-selectable data colours (account/category palette).
 
 | Token | Light | Dark |
 |---|---|---|
@@ -105,73 +104,31 @@ Brand assets: the fox mascot is `drawable-nodpi/finfox_logo.png` (+ `finfox_logo
 the adaptive launcher icon uses it as the foreground over lavender, with a monochrome layer for Android 13
 themed icons; the system splash shows it on Deep Plum.
 
-## Google Cloud / Firebase configuration
+## Google Drive backup setup (Google Cloud)
 
-Google Sign-In and Drive backup need **your own** Google Cloud/Firebase project. Nothing secret is
-compiled into the APK: Android apps use public OAuth client IDs that Google binds to your package name
-and signing-certificate fingerprints. **Never** put a client secret, service-account key or private key
-in this project.
+FinFox has **no sign-in**. Google is used only for the optional Drive backup, and that only needs
+Android OAuth clients — no Firebase, no web client, and no secrets in the APK.
 
-### 1. Signing certificate fingerprints
-Google only accepts sign-in/authorization requests from APKs whose SHA fingerprints you registered.
+1. In Google Cloud (project `ardent-gearbox-450403-n9`), go to **APIs & Services → Library** and
+   enable **Google Drive API**.
+2. Under **OAuth consent screen**, set the app name to FinFox, add the scope `.../auth/drive.appdata`,
+   and, while the app is in Testing mode, add your Gmail address as a test user.
+3. Under **Credentials → Create OAuth client ID → Android**, create one client per signing key:
 
-```bash
-# Debug builds (application id com.mymoney.app.debug)
-keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -storepass android -keypass android
-# Release builds (application id com.mymoney.app) — your upload/release keystore
-keytool -list -v -keystore my-money-release.jks -alias mymoney
-```
-Copy both the **SHA-1** and **SHA-256** values. If you publish with Google Play App Signing, also add the
-*App signing key* fingerprints from Play Console → Setup → App integrity.
-
-### 2. Firebase project + Authentication
-1. Create a project at <https://console.firebase.google.com>.
-2. Add an **Android app** for `com.mymoney.app` (release) and another for `com.mymoney.app.debug` (debug),
-   entering the SHA-1/SHA-256 fingerprints from step 1 for each.
-3. *Build → Authentication → Sign-in method*: enable **Google**. Firebase creates the OAuth clients,
-   including a **Web client** ("Web client (auto created by Google Service)") whose ID is the
-   `serverClientId` the app requests ID tokens for.
-4. Download `google-services.json` and place it at `app/google-services.json` (it's git-ignored).
-   The `com.google.gms.google-services` plugin is applied automatically only when that file exists.
-
-Alternatively, skip the JSON file and put the identifiers in `local.properties` (also git-ignored):
-```properties
-mymoney.googleWebClientId=1234567890-abc.apps.googleusercontent.com   # OAuth *Web* client ID
-mymoney.firebaseApiKey=AIza...                                          # Firebase Android API key
-mymoney.firebaseAppId=1:1234567890:android:abcdef                       # Firebase app ID
-mymoney.firebaseProjectId=my-money-12345
-```
-(also accepted as `-P` Gradle properties or `MYMONEY_GOOGLEWEBCLIENTID`-style environment variables).
-
-### 3. Google Drive API and OAuth consent
-In <https://console.cloud.google.com> for the same project:
-1. *APIs & Services → Library*: enable **Google Drive API**.
-2. *APIs & Services → OAuth consent screen*: set app name, support email, privacy policy URL, and add
-   the scopes below. While the app is in *Testing* mode, add your Google accounts as test users.
-3. *Credentials*: you should see Android OAuth clients for both package names (with your SHA-1s) and the
-   Web client. Create any that are missing.
-
-| Scope | Requested when | Purpose |
+| Build | Package name | SHA-1 |
 |---|---|---|
-| `openid`, `email`, `profile` | "Continue with Google" (Credential Manager → Firebase Auth) | Verified name, email, photo |
-| `https://www.googleapis.com/auth/drive.appdata` | Only when the user taps **Connect Google Drive** | Read/write *only* the app's hidden `appDataFolder` |
+| Release (`dist/FinFox-*-release.apk`) | `com.mymoney.app` | `95:78:41:96:EE:34:3D:A5:CD:2F:62:CF:DE:A9:E9:66:FF:3F:DC:3F` |
+| Debug (built on this Mac) | `com.mymoney.app.debug` | `94:7D:1C:E3:5F:AA:79:E8:87:C8:CD:C1:DF:C1:54:5C:E0:9B:54:EB` |
 
-Sign-in never grants Drive access; Drive is a separate, explicit authorization through
-`AuthorizationClient` (Google Identity Services). `drive.appdata` cannot see any of the user's other
-Drive files. Check Google's current scope classification in the console before publishing.
+If you publish through Google Play, also add Play's *App signing key* SHA-1. Google matches clients by
+package name and SHA-1 at runtime, so nothing has to be pasted into the project.
 
-### How the flows work
-* **Sign-in:** Credential Manager `GetSignInWithGoogleOption` shows Google's account chooser → Google ID
-  token → `FirebaseAuth.signInWithCredential` verifies it → the app stores only uid, name, email and photo
-  URL in Room (`user_profile`). The ID token is not stored. Firebase keeps its own session, which works
-  offline. Sign-out clears Firebase + Credential Manager state; **local financial data is never deleted**.
-  Switching to another account resets the Drive connection (grants are per account).
-* **Drive authorization:** `AuthorizationClient.authorize(drive.appdata)`; if Google needs consent the
-  app launches the returned `PendingIntent`. Access tokens are kept in memory for one operation only and
-  never written to disk; Play services caches the grant so background backups can get a fresh token
-  silently. A 401 clears the token (`clearToken`) and retries once; if user interaction is needed the
-  backup stops, posts "Google Drive authorization expired" and the app shows a reconnect banner.
-  "Revoke access" calls `revokeAccess` for the Drive scope and signs out.
+In the app: **Settings → Connect Google Drive** opens Google's own account picker and consent screen,
+requesting only `drive.appdata` (the hidden app folder) and `email` (to remember which account holds
+the backups so scheduled backups can re-authorize silently). Access tokens are never stored.
+
+**Release signing key:** `finfox-release.jks` + `keystore.properties` (both git-ignored). Back them
+up — without them you can never publish an update.
 
 ## Tech stack
 
@@ -185,7 +142,7 @@ Drive files. Check Google's current scope classification in the console before p
 | Background | WorkManager (reminders, snooze checks, scheduled & manual backups) — no AlarmManager, no services |
 | Settings | Room `settings` / preference tables (backed up) + DataStore (security state & sealed backup key, never backed up) |
 | Widgets | Jetpack Glance 1.1 (7 widgets, responsive sizes, Material 3 purple theme, light/dark) |
-| Google | Credential Manager + Google ID, Firebase Authentication, Play Services `AuthorizationClient` |
+| Google | Play Services `AuthorizationClient` (Drive only, no sign-in) |
 | Cloud | Google Drive REST v3 (`appDataFolder`) via Retrofit + OkHttp |
 | Crypto | AES-256-GCM, Argon2id (BouncyCastle) for recovery passphrases, Android Keystore |
 | Charts | Custom Compose Canvas charts (donut, grouped bar, line) — interactive, no extra dependency |
@@ -201,7 +158,6 @@ app/src/main/java/com/mymoney/app/
 ├── data/repo/       Repositories – all business rules and multi-table Room transactions
 ├── domain/          Pure rules: TransactionRules, ScheduleMath, Reports aggregation
 ├── security/        PinManager, KeystoreSecretBox, AppLockManager
-├── auth/            Google Sign-In gateway (Credential Manager → Firebase Auth)
 ├── backup/          Backup format v2 (Argon2id + AES-256-GCM), key store, BackupManager (replace / merge /
 │                    validate / undo), BackupMerger, CSV & PDF exporters
 ├── cloud/           Drive authorization, Drive REST client, CloudBackupService, BackupWorker
@@ -317,7 +273,7 @@ delete, open related record; history kept ~90 days).
 * Android cloud backup and device-transfer are disabled for app data. Backups are explicit and encrypted
   (see *Google Drive backup & restore*); file backups use the same v2 format with your password.
 * CSV export neutralises spreadsheet formula injection.
-* Permissions: `INTERNET` + `ACCESS_NETWORK_STATE` (used only by optional Google Sign-In and Drive backup),
+* Permissions: `INTERNET` + `ACCESS_NETWORK_STATE` (used only by the optional Google Drive backup),
   `POST_NOTIFICATIONS` (asked when you enable notifications on Android 13+) and `USE_BIOMETRIC`. No contacts,
   storage or location permissions — files go through the Storage Access Framework picker.
 * No Google password, OAuth access token or ID token is stored by the app; Drive access tokens live in memory
@@ -351,8 +307,7 @@ delete, open related record; history kept ~90 days).
   filters; income vs expenses (bar), cash flow (line), category and income-source donuts, account-wise
   spending, card outstanding, budget utilisation, scheduled payment summary, lent/borrowed, savings
   progress; CSV and PDF export.
-* **Login** – welcome page with Continue with Google / Continue Offline, then PIN + fingerprint setup;
-  returning users unlock with PIN or fingerprint (shows the linked account or "Offline mode").
+* **Unlock** – onboarding sets a PIN + fingerprint (no account); returning users unlock with PIN or fingerprint.
 * **Settings** – profile, currency, theme; **Account** (Google account profile: photo, name, email, status,
   last backup, switch account, sign out, revoke access); **Cloud Backup** (Drive connection, Backup &
   Restore, history); **Widgets** (gallery, privacy mode); **Notifications** (categories, timing, quiet
@@ -384,9 +339,9 @@ delete, open related record; history kept ~90 days).
 Instrumented tests (`./gradlew connectedDebugAndroidTest`, `app/src/androidTest`) cover the real Android
 Keystore, `MigrationTestHelper` validation of v1 → v2 and on-device persistence.
 
-Google Sign-In and live Drive calls need a configured Google project and a signed-in Google account on a
+Live Drive calls need the Android OAuth clients above and a Google account on a
 device, so they are covered by fakes and a mock Drive server in unit tests; verify them manually after
-completing *Google Cloud / Firebase configuration*.
+completing *Google Drive backup setup*.
 
 ## Adding a database migration
 
