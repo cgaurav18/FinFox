@@ -45,7 +45,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.mymoney.app.ui.account.AccountViewModel
 import com.mymoney.app.ui.account.LegalLinks
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 /**
  * Welcome / login page. Google sign-in is optional; the app is fully usable offline. Either way the
@@ -59,16 +59,16 @@ fun LoginStep(onGoogle: (name: String?, email: String?) -> Unit, onOffline: () -
     val activity = remember { Biometrics.findActivity(context) }
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
         Box(
-            Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp)).background(FinanceTheme.colors.headerGradient)
+            Modifier.fillMaxWidth().clip(RoundedCornerShape(bottomStart = 36.dp, bottomEnd = 36.dp)).background(FinFoxTheme.colors.headerGradient)
                 .padding(top = 48.dp, bottom = 36.dp, start = 24.dp, end = 24.dp),
             contentAlignment = Alignment.Center,
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Box(Modifier.size(92.dp).clip(RoundedCornerShape(28.dp)).background(Color.White.copy(alpha = 0.16f)), contentAlignment = Alignment.Center) { AppLogo(72.dp) }
+                AppLogo(124.dp)
                 Spacer(Modifier.height(18.dp))
-                Text("Welcome to My Money", color = Color.White, fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text("Welcome to FinFox", color = FinFoxTheme.colors.onGradient, fontSize = 26.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(6.dp))
-                Text("Your personal finance tracker — private, secure and offline-first.", color = Color.White.copy(alpha = 0.85f),
+                Text("Your personal finance tracker — private, secure and offline-first.", color = FinFoxTheme.colors.onGradient.copy(alpha = 0.85f),
                     style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
             }
         }
@@ -93,19 +93,14 @@ fun LoginStep(onGoogle: (name: String?, email: String?) -> Unit, onOffline: () -
 @Composable
 private fun GoogleButton(loading: Boolean, enabled: Boolean, onClick: () -> Unit) {
     androidx.compose.material3.Button(
-        onClick = onClick, enabled = enabled && !loading, modifier = Modifier.fillMaxWidth().height(52.dp), shape = RoundedCornerShape(14.dp),
+        onClick = onClick, enabled = enabled && !loading, modifier = Modifier.fillMaxWidth().height(52.dp), shape = com.mymoney.app.ui.theme.FinFoxShapes.button,
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surface, contentColor = MaterialTheme.colorScheme.onSurface),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         if (loading) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
         else {
-            // Google "G" mark drawn with Google's brand colours.
-            Box(Modifier.size(22.dp).clip(CircleShape).background(Brush.sweepGradient(listOf(Color(0xFF4285F4), Color(0xFF34A853), Color(0xFFFBBC05), Color(0xFFEA4335), Color(0xFF4285F4)))),
-                contentAlignment = Alignment.Center) {
-                Box(Modifier.size(14.dp).clip(CircleShape).background(MaterialTheme.colorScheme.surface), contentAlignment = Alignment.Center) {
-                    Text("G", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF4285F4))
-                }
-            }
+            // Official Google "G" mark (Google sign-in branding guidelines).
+            androidx.compose.foundation.Image(androidx.compose.ui.res.painterResource(com.mymoney.app.R.drawable.ic_google_g), contentDescription = null, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(12.dp))
             Text("Continue with Google", style = MaterialTheme.typography.titleSmall)
         }

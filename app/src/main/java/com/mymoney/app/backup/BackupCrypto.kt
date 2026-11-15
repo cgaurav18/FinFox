@@ -91,7 +91,7 @@ object BackupCrypto {
     data class Header(val version: Int, val params: KdfParams?, val salt: ByteArray)
 
     fun readHeader(data: ByteArray): Header {
-        if (data.size < 5 || !data.copyOfRange(0, 4).contentEquals(MAGIC)) throw BackupException("This isn't a My Money backup file")
+        if (data.size < 5 || !data.copyOfRange(0, 4).contentEquals(MAGIC)) throw BackupException("This isn't a FinFox backup file")
         return when (data[4]) {
             V1 -> {
                 if (data.size < 5 + SALT + IV + 16) throw BackupException("The backup file is truncated")
@@ -106,7 +106,7 @@ object BackupCrypto {
                 if (!params.isSane()) throw BackupException("The backup file has invalid encryption parameters")
                 Header(2, params, data.copyOfRange(V2_HEADER - IV - SALT, V2_HEADER - IV))
             }
-            else -> throw BackupException("This backup was made by a newer version of My Money")
+            else -> throw BackupException("This backup was made by a newer version of FinFox")
         }
     }
 

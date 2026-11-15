@@ -33,6 +33,7 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    private val appearance: com.mymoney.app.data.repo.AppearanceRepository,
     profiles: com.mymoney.app.data.repo.ProfileRepository,
     cloud: com.mymoney.app.cloud.CloudBackupService,
     private val widgets: com.mymoney.app.widgets.WidgetRepository,
@@ -54,7 +55,8 @@ class SettingsViewModel @Inject constructor(
 
     fun update(transform: (SettingsEntity) -> SettingsEntity) = launchSafe { settings.update(transform) }
     fun setName(n: String) = launchSafe("Profile updated") { if (n.isBlank()) throw com.mymoney.app.core.FinanceException("Name can't be empty"); settings.update { it.copy(profileName = n.trim().take(40)) } }
-    fun setTheme(t: ThemeMode) = update { it.copy(themeMode = t) }
+    fun setTheme(t: ThemeMode) = launchSafe { appearance.setThemeMode(t) }
+    val themeMode = appearance.themeMode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)
     fun setNotifications(on: Boolean) = launchSafe { settings.update { it.copy(notificationsEnabled = on) }; if (on) ReminderWorker.schedule(context) }
     fun setBiometric(on: Boolean) = launchSafe(if (on) "Biometric unlock enabled" else "Biometric unlock disabled") { pins.setBiometric(on) }
     fun setAutoLock(s: Int) = launchSafe { pins.setAutoLock(s) }

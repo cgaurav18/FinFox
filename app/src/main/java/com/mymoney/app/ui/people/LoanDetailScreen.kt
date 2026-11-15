@@ -63,7 +63,7 @@ import com.mymoney.app.ui.components.ProgressBar
 import com.mymoney.app.ui.components.SecondaryButton
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import java.time.LocalDate
 
 @Composable
@@ -78,7 +78,7 @@ fun LoanDetailScreen(nav: NavController, vm: LoanDetailViewModel = hiltViewModel
     var settle by remember { mutableStateOf(false) }
     var del by remember { mutableStateOf(false) }
     val currency = LocalCurrency.current
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     LaunchedEffect(Unit) { vm.done.collect { nav.popBackStack() } }
     AppScaffold(
         title = "Loan Details", onBack = { nav.popBackStack() },

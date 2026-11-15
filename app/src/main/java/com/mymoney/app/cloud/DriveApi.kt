@@ -76,7 +76,7 @@ interface DriveService {
     companion object { const val FILE_FIELDS = "id,name,size,createdTime,md5Checksum,appProperties" }
 }
 
-/** The few Drive operations My Money uses, all confined to the hidden app data folder. */
+/** The few Drive operations FinFox uses, all confined to the hidden app data folder. */
 interface DriveRemote {
     suspend fun list(token: String): List<DriveFile>
     suspend fun upload(token: String, name: String, bytes: ByteArray, appProperties: Map<String, String>): DriveFile

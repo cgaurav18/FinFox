@@ -150,6 +150,6 @@ class ReportsViewModel @Inject constructor(
 
     fun fileStem(): String {
         val r = filter.value.range
-        return "MyMoney_${r.start}_to_${r.endInclusive}"
+        return "FinFox_${r.start}_to_${r.endInclusive}"
     }
 }

@@ -70,9 +70,9 @@ class ToggleBalanceCallback : ActionCallback {
 fun TotalBalanceContent(m: BalanceModel) {
     val f = m.fmt
     WidgetContainer(openAction("home")) {
-        WidgetHeader("My Money", "Updated ${Dates.formatTime(m.updatedAt)}") {
+        WidgetHeader("FinFox", "Updated ${Dates.formatTime(m.updatedAt)}") {
             Box(GlanceModifier.padding(4.dp).clickTo(actionRunCallback<ToggleBalanceCallback>())) {
-                Icon(if (m.hidden) R.drawable.ic_w_visibility_off else R.drawable.ic_w_visibility, if (m.hidden) "Show balance" else "Hide balance", GlanceTheme.colors.onSurfaceVariant)
+                Icon(if (m.hidden) R.drawable.ic_w_visibility_off else R.drawable.ic_w_visibility, if (m.hidden) "Show balance" else "Hide balance", if (m.hidden) WidgetColors.highlight else GlanceTheme.colors.onSurfaceVariant)
             }
         }
         Spacer(GlanceModifier.defaultWeight())
@@ -80,7 +80,7 @@ fun TotalBalanceContent(m: BalanceModel) {
             Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.Bottom) {
                 Column(GlanceModifier.defaultWeight()) {
                     Label("Total available balance", size = 11.sp)
-                    Amount(f.money(m.availableMinor), size = 22.sp, color = GlanceTheme.colors.primary)
+                    Amount(f.money(m.availableMinor), size = 22.sp, color = WidgetColors.brand)
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     Label("Bank ${f.compact(m.bankMinor)}", size = 11.sp, color = GlanceTheme.colors.onSurface)
@@ -90,7 +90,7 @@ fun TotalBalanceContent(m: BalanceModel) {
             }
         } else {
             Label("Available", size = 11.sp)
-            Amount(f.money(m.availableMinor), size = 18.sp, color = GlanceTheme.colors.primary)
+            Amount(f.money(m.availableMinor), size = 18.sp, color = WidgetColors.brand)
             Label("Bank ${f.compact(m.bankMinor)} · Cash ${f.compact(m.cashMinor)}", size = 10.sp)
         }
     }
@@ -129,13 +129,17 @@ fun IncomeExpenseContent(m: MonthModel) {
             Label("Top spending", size = 11.sp, bold = true, color = GlanceTheme.colors.onSurface)
             if (m.categories.isEmpty()) EmptyLine("No expenses yet this month.")
             val top = m.categories.maxOfOrNull { it.amountMinor } ?: 1
-            m.categories.forEach { c ->
-                VSpace(3)
-                Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Label(c.name, size = 11.sp, modifier = GlanceModifier.defaultWeight())
-                    Label(f.compact(c.amountMinor), size = 11.sp, bold = true, color = GlanceTheme.colors.onSurface)
+            // Nested columns: RemoteViews keep at most 10 children per Row/Column.
+            Column(GlanceModifier.fillMaxWidth()) {
+                m.categories.forEach { c ->
+                    Column(GlanceModifier.fillMaxWidth().padding(top = 3.dp)) {
+                        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Label(c.name, size = 11.sp, modifier = GlanceModifier.defaultWeight())
+                            Label(f.compact(c.amountMinor), size = 11.sp, bold = true, color = GlanceTheme.colors.onSurface)
+                        }
+                        Progress(c.amountMinor.toFloat() / top, androidx.glance.unit.ColorProvider(androidx.compose.ui.graphics.Color(c.colorArgb)))
+                    }
                 }
-                Progress(c.amountMinor.toFloat() / top, androidx.glance.unit.ColorProvider(androidx.compose.ui.graphics.Color(c.colorArgb)))
             }
         }
     }
@@ -157,8 +161,8 @@ fun QuickActionsContent() {
     val actions = listOf(
         QuickAction("Expense", R.drawable.ic_w_expense, "txn-edit?id=-1&type=${TxnType.EXPENSE.name}", WidgetColors.expense, "Add expense"),
         QuickAction("Income", R.drawable.ic_w_income, "txn-edit?id=-1&type=${TxnType.INCOME.name}", WidgetColors.income, "Add income"),
-        QuickAction("Transfer", R.drawable.ic_w_transfer, "txn-edit?id=-1&type=${TxnType.TRANSFER.name}", GlanceTheme.colors.primary, "Transfer money"),
-        QuickAction("Lending", R.drawable.ic_w_people, "loan-edit?id=-1&direction=${LoanDirection.GAVE.name}", GlanceTheme.colors.secondary, "Add lending or borrowing entry"),
+        QuickAction("Transfer", R.drawable.ic_w_transfer, "txn-edit?id=-1&type=${TxnType.TRANSFER.name}", WidgetColors.transfer, "Transfer money"),
+        QuickAction("Lending", R.drawable.ic_w_people, "loan-edit?id=-1&direction=${LoanDirection.GAVE.name}", WidgetColors.highlight, "Add lending or borrowing entry"),
     )
     WidgetContainer(null, padding = 8) {
         if (isWide) {
@@ -209,11 +213,11 @@ class UpcomingPaymentsWidget : GlanceAppWidget() {
 fun UpcomingContent(m: UpcomingModel) {
     WidgetContainer(openAction("schedules")) {
         WidgetHeader("Upcoming payments", if (!isTall) null else if (m.overdueCount > 0) "${m.overdueCount} overdue" else "EMI, SIP, bills & subscriptions") {
-            if (m.overdueCount > 0) Chip("Overdue", WidgetColors.expense)
+            if (m.overdueCount > 0) Chip("Overdue", WidgetColors.overdue)
         }
         VSpace(4)
         if (m.rows.isEmpty()) EmptyLine("No upcoming payments. Add EMIs, SIPs and bills in Scheduled Payments.")
-        m.rows.take(if (isTall) 5 else 2).forEach { r ->
+        Column(GlanceModifier.fillMaxWidth()) { m.rows.take(if (isTall) 5 else 2).forEach { r ->
             Row(GlanceModifier.fillMaxWidth().padding(vertical = 2.dp).clickTo(openAction("schedule/${r.id}")), verticalAlignment = Alignment.CenterVertically) {
                 Column(GlanceModifier.defaultWeight()) {
                     Label(r.title, size = 12.sp, bold = true, color = GlanceTheme.colors.onSurface)
@@ -222,7 +226,7 @@ fun UpcomingContent(m: UpcomingModel) {
                 }
                 Amount(m.fmt.compact(r.amountMinor), size = 13.sp, color = if (r.overdue) WidgetColors.expense else GlanceTheme.colors.onSurface)
             }
-        }
+        } }
     }
 }
 
@@ -251,7 +255,7 @@ fun PeopleContent(m: PeopleModel) {
             VSpace(6)
             Label("Upcoming due dates", size = 11.sp, bold = true, color = GlanceTheme.colors.onSurface)
             if (m.rows.isEmpty()) EmptyLine("No due dates set.")
-            m.rows.take(4).forEach { r ->
+            Column(GlanceModifier.fillMaxWidth()) { m.rows.take(4).forEach { r ->
                 Row(GlanceModifier.fillMaxWidth().padding(vertical = 3.dp).clickTo(openAction("loan/${r.loanId}")), verticalAlignment = Alignment.CenterVertically) {
                     Column(GlanceModifier.defaultWeight()) {
                         Label(if (r.gave) "${r.person} owes you" else "You owe ${r.person}", size = 12.sp, bold = true, color = GlanceTheme.colors.onSurface)
@@ -259,7 +263,7 @@ fun PeopleContent(m: PeopleModel) {
                     }
                     Amount(f.compact(r.outstandingMinor), size = 13.sp, color = if (r.gave) WidgetColors.income else WidgetColors.expense)
                 }
-            }
+            } }
         } else m.rows.firstOrNull()?.let { r ->
             VSpace(4)
             Label("Next: ${r.person} · ${r.dueLabel}", size = 11.sp, color = if (r.overdue) WidgetColors.expense else GlanceTheme.colors.onSurfaceVariant)
@@ -301,12 +305,16 @@ fun BudgetContent(m: BudgetModel) {
         if (m.overCount > 0 && !isTall) Label("⚠ Overspending in ${m.overCount} categor${if (m.overCount == 1) "y" else "ies"}", size = 10.sp, color = WidgetColors.expense)
         if (isTall) {
             VSpace(6)
-            m.rows.take(4).forEach { r ->
-                Row(GlanceModifier.fillMaxWidth().padding(top = 3.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Label(r.name + if (r.over) " ⚠" else "", size = 11.sp, color = if (r.over) WidgetColors.expense else GlanceTheme.colors.onSurface, modifier = GlanceModifier.defaultWeight())
-                    Label(if (f.masked) "${r.percent}%" else "${f.compact(r.spentMinor)} / ${f.compact(r.limitMinor)}", size = 10.sp)
+            Column(GlanceModifier.fillMaxWidth()) {
+                m.rows.take(4).forEach { r ->
+                    Column(GlanceModifier.fillMaxWidth().padding(top = 3.dp)) {
+                        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Label(r.name + if (r.over) " ⚠" else "", size = 11.sp, color = if (r.over) WidgetColors.expense else GlanceTheme.colors.onSurface, modifier = GlanceModifier.defaultWeight())
+                            Label(if (f.masked) "${r.percent}%" else "${f.compact(r.spentMinor)} / ${f.compact(r.limitMinor)}", size = 10.sp)
+                        }
+                        Progress(r.fraction, when { r.over || r.percent >= 100 -> WidgetColors.expense; r.percent >= 80 -> WidgetColors.warning; else -> GlanceTheme.colors.primary })
+                    }
                 }
-                Progress(r.fraction, when { r.over || r.percent >= 100 -> WidgetColors.expense; r.percent >= 80 -> WidgetColors.warning; else -> GlanceTheme.colors.primary })
             }
         }
     }
@@ -350,14 +358,18 @@ fun CreditCardContent(m: CardModel) {
         } else Label("No card payment due", size = 11.sp)
         if (isTall) {
             VSpace(6)
-            m.cards.take(3).forEach { c ->
-                Row(GlanceModifier.fillMaxWidth().padding(top = 3.dp).clickTo(openAction("account-detail/${c.id}")), verticalAlignment = Alignment.CenterVertically) {
-                    Label(c.name, size = 11.sp, color = GlanceTheme.colors.onSurface, modifier = GlanceModifier.defaultWeight())
-                    Label(f.compact(c.outstandingMinor) + (c.limitMinor?.let { " / " + f.compact(it) } ?: ""), size = 10.sp)
-                }
-                c.limitMinor?.takeIf { it > 0 }?.let { lim ->
-                    val u = c.outstandingMinor.toFloat() / lim
-                    Progress(u, if (u >= 0.8f) WidgetColors.expense else GlanceTheme.colors.primary)
+            Column(GlanceModifier.fillMaxWidth()) {
+                m.cards.take(3).forEach { c ->
+                    Column(GlanceModifier.fillMaxWidth().padding(top = 3.dp).clickTo(openAction("account-detail/${c.id}"))) {
+                        Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Label(c.name, size = 11.sp, color = GlanceTheme.colors.onSurface, modifier = GlanceModifier.defaultWeight())
+                            Label(f.compact(c.outstandingMinor) + (c.limitMinor?.let { " / " + f.compact(it) } ?: ""), size = 10.sp)
+                        }
+                        c.limitMinor?.takeIf { it > 0 }?.let { lim ->
+                            val u = c.outstandingMinor.toFloat() / lim
+                            Progress(u, if (u >= 0.8f) WidgetColors.expense else GlanceTheme.colors.primary)
+                        }
+                    }
                 }
             }
         }

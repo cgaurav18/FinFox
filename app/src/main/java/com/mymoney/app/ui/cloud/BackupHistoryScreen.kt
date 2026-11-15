@@ -46,7 +46,7 @@ import com.mymoney.app.ui.components.IconBadge
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.components.TonalButton
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @Composable
 fun BackupHistoryScreen(nav: NavController, vm: BackupHistoryViewModel = hiltViewModel()) {
@@ -83,7 +83,7 @@ fun BackupHistoryScreen(nav: NavController, vm: BackupHistoryViewModel = hiltVie
                     val ok = m.status == BackupStatus.SUCCESS
                     AppCard(contentPadding = 12.dp) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(if (ok) Icons.Filled.CheckCircle else Icons.Filled.ErrorOutline, null, tint = if (ok) FinanceTheme.colors.income else MaterialTheme.colorScheme.error)
+                            Icon(if (ok) Icons.Filled.CheckCircle else Icons.Filled.ErrorOutline, null, tint = if (ok) FinFoxTheme.colors.income else MaterialTheme.colorScheme.error)
                             Spacer(Modifier.width(10.dp))
                             Column(Modifier.weight(1f)) {
                                 Text((if (m.trigger == BackupTrigger.AUTO) "Automatic" else "Manual") + " backup · ${Dates.formatDay(m.createdAt)} ${Dates.formatTime(m.createdAt)}", style = MaterialTheme.typography.bodyMedium)

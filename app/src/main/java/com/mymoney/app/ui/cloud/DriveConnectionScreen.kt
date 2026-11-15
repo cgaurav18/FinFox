@@ -45,7 +45,7 @@ import com.mymoney.app.ui.components.PrimaryButton
 import com.mymoney.app.ui.components.SecondaryButton
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @Composable
 fun DriveConnectionScreen(nav: NavController, vm: CloudBackupViewModel = hiltViewModel()) {
@@ -72,15 +72,15 @@ fun DriveConnectionScreen(nav: NavController, vm: CloudBackupViewModel = hiltVie
                         }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     when {
-                        p.driveConnected && !p.driveNeedsReauth -> Chip("Connected", FinanceTheme.colors.income)
+                        p.driveConnected && !p.driveNeedsReauth -> Chip("Connected", FinFoxTheme.colors.income)
                         p.driveNeedsReauth -> Chip("Action needed", MaterialTheme.colorScheme.error)
                         else -> Chip("Off", MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
             }
-            SectionHeader("What My Money can access")
+            SectionHeader("What FinFox can access")
             AppCard {
-                Point(Icons.Filled.FolderOff, "Only its own hidden folder", "The drive.appdata permission lets My Money see only the backup files it creates in a private app folder — not your photos, documents or any other Drive files.")
+                Point(Icons.Filled.FolderOff, "Only its own hidden folder", "The drive.appdata permission lets FinFox see only the backup files it creates in a private app folder — not your photos, documents or any other Drive files.")
                 Point(Icons.Filled.Lock, "Encrypted before upload", "Backups are encrypted on this phone with AES-256-GCM. Google stores only unreadable data.")
                 Point(Icons.Filled.Key, "Your passphrase, your key", "The key comes from your recovery passphrase (Argon2id) and is never uploaded.")
             }
@@ -98,7 +98,7 @@ fun DriveConnectionScreen(nav: NavController, vm: CloudBackupViewModel = hiltVie
     }
     if (passphrase) PassphraseDialog(vm, changing = false) { passphrase = false }
     if (disconnect) ConfirmDialog(
-        "Disconnect Google Drive?", "Automatic backups stop and My Money's Drive permission is revoked. Backups already in your Drive are kept and can be restored after reconnecting.",
+        "Disconnect Google Drive?", "Automatic backups stop and FinFox's Drive permission is revoked. Backups already in your Drive are kept and can be restored after reconnecting.",
         "Disconnect", onConfirm = vm::disconnectDrive, onDismiss = { disconnect = false },
     )
 }

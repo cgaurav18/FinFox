@@ -70,7 +70,7 @@ import com.mymoney.app.ui.components.ProgressBar
 import com.mymoney.app.ui.components.SecondaryButton
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
@@ -118,7 +118,7 @@ private fun GoalCard(g: GoalWithSaved, onClick: () -> Unit) {
                 Text(g.goal.name, style = MaterialTheme.typography.titleSmall)
                 Text(g.goal.targetEpochDay?.let { "By ${Dates.formatDay(LocalDate.ofEpochDay(it))}" } ?: "No deadline", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            if (done) Chip("Completed", FinanceTheme.colors.income) else Text("${Money.percent(g.savedMinor, g.goal.targetMinor)}%", style = MaterialTheme.typography.titleSmall, color = Color(g.goal.colorArgb))
+            if (done) Chip("Completed", FinFoxTheme.colors.income) else Text("${Money.percent(g.savedMinor, g.goal.targetMinor)}%", style = MaterialTheme.typography.titleSmall, color = Color(g.goal.colorArgb))
         }
         Spacer(Modifier.height(10.dp))
         ProgressBar(g.savedMinor.toFloat() / g.goal.targetMinor, Color(g.goal.colorArgb))
@@ -163,7 +163,7 @@ fun GoalDetailScreen(nav: NavController, vm: GoalDetailViewModel = hiltViewModel
     var del by remember { mutableStateOf(false) }
     var delEntry by remember { mutableStateOf<Long?>(null) }
     val currency = LocalCurrency.current
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     LaunchedEffect(Unit) { vm.done.collect { nav.popBackStack() } }
     AppScaffold(
         title = g?.goal?.name ?: "Goal", onBack = { nav.popBackStack() },

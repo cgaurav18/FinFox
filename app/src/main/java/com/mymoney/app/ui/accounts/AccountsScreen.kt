@@ -39,7 +39,7 @@ import com.mymoney.app.ui.components.MoneyText
 import com.mymoney.app.ui.components.PillTabs
 import com.mymoney.app.ui.components.StatTile
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 fun accountTypeLabel(t: AccountType?) = when (t) { null -> "All"; AccountType.BANK -> "Bank"; AccountType.CREDIT_CARD -> "Card"; AccountType.CASH -> "Cash" }
 
@@ -63,8 +63,8 @@ fun AccountsScreen(nav: NavController, vm: AccountsViewModel = hiltViewModel()) 
             totals?.let { t ->
                 item {
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                        StatTile("Available", t.availableMinor, FinanceTheme.colors.income, Icons.Filled.AccountBalance, Modifier.weight(1f))
-                        StatTile("Card outstanding", t.creditOutstandingMinor, FinanceTheme.colors.expense, AppIcons.forAccount(AccountType.CREDIT_CARD), Modifier.weight(1f))
+                        StatTile("Available", t.availableMinor, FinFoxTheme.colors.income, Icons.Filled.AccountBalance, Modifier.weight(1f))
+                        StatTile("Card outstanding", t.creditOutstandingMinor, FinFoxTheme.colors.expense, AppIcons.forAccount(AccountType.CREDIT_CARD), Modifier.weight(1f))
                     }
                 }
             }
@@ -97,10 +97,10 @@ fun AccountRow(a: AccountWithBalance, onClick: () -> Unit) {
     ListRow(AppIcons.forAccount(acc.type), Color(acc.colorArgb), acc.name, subtitle, onClick = onClick) {
         Column(horizontalAlignment = Alignment.End) {
             if (acc.type == AccountType.CREDIT_CARD) {
-                MoneyText(a.outstandingMinor, color = if (a.outstandingMinor > 0) FinanceTheme.colors.expense else FinanceTheme.colors.income, style = MaterialTheme.typography.titleSmall, currency = acc.currency)
+                MoneyText(a.outstandingMinor, color = if (a.outstandingMinor > 0) FinFoxTheme.colors.expense else FinFoxTheme.colors.income, style = MaterialTheme.typography.titleSmall, currency = acc.currency)
                 Text("outstanding", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
-                MoneyText(a.balanceMinor, color = if (a.balanceMinor < 0) FinanceTheme.colors.expense else FinanceTheme.colors.income, style = MaterialTheme.typography.titleSmall, currency = acc.currency)
+                MoneyText(a.balanceMinor, color = if (a.balanceMinor < 0) FinFoxTheme.colors.expense else FinFoxTheme.colors.income, style = MaterialTheme.typography.titleSmall, currency = acc.currency)
             }
             if (acc.archived) Chip("Archived", MaterialTheme.colorScheme.onSurfaceVariant)
         }

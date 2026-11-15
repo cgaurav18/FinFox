@@ -57,7 +57,7 @@ import com.mymoney.app.ui.components.ProgressBar
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.components.TonalButton
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import com.mymoney.app.ui.transactions.TxnRow
 
 @Composable

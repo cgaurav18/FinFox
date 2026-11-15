@@ -75,14 +75,16 @@ import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.components.TimeField
 import com.mymoney.app.ui.components.TonalButton
 import com.mymoney.app.ui.navigation.Routes
+import com.mymoney.app.ui.theme.FinFoxTheme
 import java.time.LocalTime
 
+@Composable
 private fun categoryIcon(c: NotificationCategory): Pair<ImageVector, Color> = when (c) {
-    NotificationCategory.PAYMENT -> Icons.Filled.EventRepeat to Color(0xFFF97316)
-    NotificationCategory.LOAN -> Icons.Filled.Groups to Color(0xFF0891B2)
-    NotificationCategory.BUDGET -> Icons.Filled.PieChart to Color(0xFFDB2777)
-    NotificationCategory.GOAL -> Icons.Filled.Savings to Color(0xFF16A34A)
-    NotificationCategory.BACKUP -> Icons.Filled.Cloud to Color(0xFF7C3AED)
+    NotificationCategory.PAYMENT -> Icons.Filled.EventRepeat to FinFoxTheme.colors.warning
+    NotificationCategory.LOAN -> Icons.Filled.Groups to FinFoxTheme.colors.transfer
+    NotificationCategory.BUDGET -> Icons.Filled.PieChart to FinFoxTheme.colors.accent
+    NotificationCategory.GOAL -> Icons.Filled.Savings to FinFoxTheme.colors.savings
+    NotificationCategory.BACKUP -> Icons.Filled.Cloud to MaterialTheme.colorScheme.primary
 }
 
 @Composable
@@ -177,7 +179,7 @@ fun NotificationPreferencesScreen(nav: NavController, vm: NotificationPreference
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Filled.NotificationsOff, null, tint = MaterialTheme.colorScheme.error)
                         Spacer(Modifier.width(10.dp))
-                        Text("Notifications are blocked for My Money. Alerts will still appear in the in-app notification center.",
+                        Text("Notifications are blocked for FinFox. Alerts will still appear in the in-app notification center.",
                             style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f))
                     }
                     Spacer(Modifier.height(8.dp))

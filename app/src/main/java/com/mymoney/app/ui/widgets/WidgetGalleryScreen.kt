@@ -47,7 +47,7 @@ import com.mymoney.app.ui.components.LabeledSwitchRow
 import com.mymoney.app.ui.components.MessageBus
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.components.TonalButton
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import com.mymoney.app.widgets.WidgetKind
 import com.mymoney.app.widgets.WidgetRepository
 import com.mymoney.app.widgets.WidgetUpdater
@@ -111,7 +111,7 @@ fun WidgetGalleryScreen(nav: NavController, vm: WidgetGalleryViewModel = hiltVie
             item {
                 AppCard {
                     Text("How to add a widget", style = MaterialTheme.typography.titleSmall)
-                    Text("Tap \"Add to home screen\" below, or long-press an empty spot on your home screen → Widgets → My Money, then drag a widget onto the screen. Widgets can be resized; layouts adapt to the size.",
+                    Text("Tap \"Add to home screen\" below, or long-press an empty spot on your home screen → Widgets → FinFox, then drag a widget onto the screen. Widgets can be resized; layouts adapt to the size.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -124,7 +124,7 @@ fun WidgetGalleryScreen(nav: NavController, vm: WidgetGalleryViewModel = hiltVie
                             Text(k.sizesLabel, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                         val n = placed[k] ?: 0
-                        if (n > 0) Chip("On home screen${if (n > 1) " ×$n" else ""}", FinanceTheme.colors.income)
+                        if (n > 0) Chip("On home screen${if (n > 1) " ×$n" else ""}", FinFoxTheme.colors.income)
                     }
                     Spacer(Modifier.height(4.dp))
                     Text(k.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -143,7 +143,7 @@ fun WidgetGalleryScreen(nav: NavController, vm: WidgetGalleryViewModel = hiltVie
     if (howTo) AlertDialog(
         onDismissRequest = { howTo = false },
         title = { Text("Add it from your home screen") },
-        text = { Text("Your launcher doesn't support adding widgets from apps. Long-press an empty area of your home screen, choose Widgets, find My Money and drag the widget you want onto the screen.") },
+        text = { Text("Your launcher doesn't support adding widgets from apps. Long-press an empty area of your home screen, choose Widgets, find FinFox and drag the widget you want onto the screen.") },
         confirmButton = { TextButton(onClick = { howTo = false }) { Text("OK") } },
     )
 }

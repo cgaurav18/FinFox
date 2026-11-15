@@ -73,10 +73,10 @@ fun LegalDialog(doc: LegalDoc, onDismiss: () -> Unit) {
 }
 
 private val PRIVACY_TEXT = """
-My Money is an offline-first personal finance tracker. This policy describes exactly what the app does with your data.
+FinFox is an offline-first personal finance tracker. This policy describes exactly what the app does with your data.
 
 1. Your financial data stays on your device
-Accounts, transactions, scheduled payments, lending/borrowing, budgets and goals are stored only in a local database on this device. My Money has no server of its own and never sends your financial records anywhere unless you create a backup.
+Accounts, transactions, scheduled payments, lending/borrowing, budgets and goals are stored only in a local database on this device. FinFox has no server of its own and never sends your financial records anywhere unless you create a backup.
 
 2. Google Sign-In (optional)
 If you choose "Continue with Google", Google's account picker and Firebase Authentication verify your identity. The app keeps only your Google display name, email address, profile photo link and account id locally. It never sees or stores your Google password and does not store Google access tokens on disk.
@@ -97,17 +97,17 @@ Your PIN is stored as a salted hash protected by the Android Keystore. Android's
 You can use the app fully offline, sign out at any time (your local data is kept), disconnect Google Drive, revoke the app's access, delete backups from Backup History, or erase all data from Settings.
 
 8. Children
-My Money is not directed at children under 13.
+FinFox is not directed at children under 13.
 
 9. Changes
 Material changes to this policy will be shown in the app.
 """.trimIndent()
 
 private val TERMS_TEXT = """
-By using My Money you agree to the following.
+By using FinFox you agree to the following.
 
 1. A tracking tool, not a bank
-My Money records money you tell it about. It never moves real money, connects to bank accounts, initiates payments or asks for card numbers, CVVs, UPI PINs or banking passwords. "Mark as paid" only records a payment you made elsewhere.
+FinFox records money you tell it about. It never moves real money, connects to bank accounts, initiates payments or asks for card numbers, CVVs, UPI PINs or banking passwords. "Mark as paid" only records a payment you made elsewhere.
 
 2. Your responsibility
 You are responsible for the accuracy of the data you enter and for decisions you make based on it. The app's calculations are provided as-is for personal record keeping and are not financial, tax or legal advice.

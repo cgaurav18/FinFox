@@ -162,6 +162,35 @@ class WidgetTest {
         onNode(hasText("No credit cards added yet.")).assertExists()
     }
 
+    // ---- RemoteViews translation (RemoteViews drop children past 10 per Row/Column) ----
+
+    @OptIn(androidx.glance.appwidget.ExperimentalGlanceRemoteViewsApi::class)
+    private fun inflate(size: androidx.compose.ui.unit.DpSize, content: @androidx.compose.runtime.Composable () -> Unit): android.view.View = runBlocking {
+        val rv = androidx.glance.appwidget.GlanceRemoteViews().compose(ctx, size) {
+            WidgetTheme { androidx.compose.runtime.CompositionLocalProvider(LocalInteractive provides false) { content() } }
+        }.remoteViews
+        rv.apply(ctx, android.widget.FrameLayout(ctx))
+    }
+
+    private fun android.view.View.count(cls: Class<*>): Int =
+        (if (cls.isInstance(this)) 1 else 0) + ((this as? android.view.ViewGroup)?.let { g -> (0 until g.childCount).sumOf { g.getChildAt(it).count(cls) } } ?: 0)
+
+    @Test fun largeWidgetsKeepEveryListRowAfterRemoteViewsTranslation() {
+        val rows = (1..4).map { BudgetRow("Cat$it", 0xFF5B0FA6, it * 1_000 * R, 5_000 * R) }
+        val budget = inflate(WidgetSizes.LARGE) { BudgetContent(BudgetModel(YearMonth.of(2026, 11), rows, inr)) }
+        assertThat(budget.count(android.widget.ProgressBar::class.java)).isEqualTo(1 + 4) // overall + every category
+
+        val cats = (1..4).map { CategorySpend(it.toLong(), "C$it", 0xFFFF7417, it * 100 * R) }
+        val month = inflate(WidgetSizes.LARGE) { IncomeExpenseContent(MonthModel(YearMonth.of(2026, 11), 1_000 * R, 500 * R, cats, inr)) }
+        assertThat(month.count(android.widget.ProgressBar::class.java)).isEqualTo(1 + 4)
+
+        val today = java.time.LocalDate.of(2026, 11, 15)
+        val cards = inflate(WidgetSizes.LARGE) {
+            CreditCardContent(WidgetModels.cards((1..3L).map { acc(it, AccountType.CREDIT_CARD, -1_000 * R, 10_000 * R, dueDay = 20) }, today, inr))
+        }
+        assertThat(cards.count(android.widget.ProgressBar::class.java)).isEqualTo(3)
+    }
+
     // ---- Live data & refresh ----
 
     @Test fun widgetsRefreshAfterTransactionsWithoutPolling() = runBlocking {

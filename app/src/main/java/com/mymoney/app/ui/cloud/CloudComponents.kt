@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.dp
 import com.mymoney.app.backup.BackupCrypto
 import com.mymoney.app.ui.components.AppTextField
 import com.mymoney.app.ui.components.ProgressBar
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import kotlinx.coroutines.launch
 
 /** Launches Google's Drive consent screen whenever the view model asks for it. */
@@ -64,9 +64,9 @@ fun PassphraseDialog(vm: CloudBackupViewModel, changing: Boolean, onDismiss: () 
                 if (p.isNotEmpty()) {
                     val (label, color) = when (strength) {
                         0, 1 -> "Weak" to MaterialTheme.colorScheme.error
-                        2 -> "Fair" to FinanceTheme.colors.warning
-                        3 -> "Good" to FinanceTheme.colors.income
-                        else -> "Strong" to FinanceTheme.colors.income
+                        2 -> "Fair" to FinFoxTheme.colors.warning
+                        3 -> "Good" to FinFoxTheme.colors.income
+                        else -> "Strong" to FinFoxTheme.colors.income
                     }
                     ProgressBar(strength / 4f, color, height = 6.dp)
                     Text("Strength: $label", style = MaterialTheme.typography.labelSmall, color = color)

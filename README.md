@@ -1,4 +1,6 @@
-# My Money – Personal Finance & Expense Tracker (Android)
+# FinFox – Personal Finance & Expense Tracker (Android)
+
+<img src="app/src/main/res/drawable-nodpi/finfox_logo.png" width="96" alt="FinFox fox mascot"/>
 
 A native Android app (Kotlin + Jetpack Compose) to track income, expenses, bank accounts, credit cards,
 cash, transfers, scheduled payments (EMI / SIP / bills), money lent and borrowed, budgets, savings goals
@@ -7,16 +9,16 @@ app is fully usable without an account or a connection. Version 1.1 adds optiona
 encrypted Google Drive backup & restore, seven home screen widgets, smart notifications and a
 notification center.
 
-> My Money is a tracker. It never initiates real payments and never asks for bank passwords, full card
+> FinFox is a tracker. It never initiates real payments and never asks for bank passwords, full card
 > numbers, CVVs or UPI PINs.
 
 ## Quick start
 
 ### Install the prebuilt APK
-`dist/MyMoney-1.1.0-debug.apk` (application id `com.mymoney.app.debug`; also built to `app/build/outputs/apk/debug/app-debug.apk`).
+`dist/FinFox-1.2.0-debug.apk` (application id `com.mymoney.app.debug`; also built to `app/build/outputs/apk/debug/app-debug.apk`).
 
 ```bash
-adb install -r dist/MyMoney-1.1.0-debug.apk
+adb install -r dist/FinFox-1.2.0-debug.apk
 ```
 
 Without a Google/Firebase configuration (see below) the app still installs and works fully offline;
@@ -53,6 +55,55 @@ keyPassword=...
 
 `./gradlew assembleRelease` then produces a signed, R8-minified, resource-shrunk APK. Without the file,
 the release APK is built unsigned.
+
+> **Renamed in 1.2:** the app is now **FinFox**. The technical application id stays `com.mymoney.app`
+> (`.debug` for debug builds) so existing installs upgrade in place with all their data, PIN, Google
+> sign-in and Drive backups intact. Old backup files (`MMBK` format, `mymoney-backup-*` in Drive) still restore.
+
+## Design system (FinFox theme)
+
+All colours live in `ui/theme/Color.kt` (`FinFoxPalette`) and are applied through `ui/theme/FinFoxTheme.kt`
+(Material 3 light/dark `ColorScheme` + `FinFoxTheme.colors` tokens). UI code doesn't use raw hex values;
+the only literals outside the theme are user-selectable data colours (account/category palette) and
+Google's brand colours on the "Continue with Google" mark.
+
+| Token | Light | Dark |
+|---|---|---|
+| Background / card | `#F8F6FC` / `#FFFFFF` | `#170B27` / `#2B1645` |
+| Text / secondary text | `#25083F` / `#62576F` | `#FFFFFF` / `#C8B7D9` |
+| Primary button | `#5B0FA6` | `#7C20D9` |
+| Selected navigation | `#7C20D9` | `#FF7417` |
+| Accent | `#FF7417` | `#FFB21C` |
+| Border | `#E9E1F0` | `#49305F` |
+| Brand gradient | `#25083F → #5B0FA6 → #7C20D9 → #FF7417` (balance card, splash, login header) | same |
+
+Status colours: income `#16A34A`, expense `#DC2626`, transfer `#2563EB`, EMI/upcoming `#D97706`,
+savings `#0D9488`, overdue `#B91C1C`; always shown together with an icon or label. In dark mode, amounts
+drawn as *text* use lightened tints of the same hues (e.g. income `#4ADE80`) so they meet WCAG AA on the
+violet cards; icons, bars and chart fills keep the canonical colours. Dark-mode "primary" text/links use a
+light violet (`#C9A6F7`) for the same reason, while filled buttons use Royal Violet.
+
+Accessibility: all body/secondary text pairs are ≥ 4.5:1 (most ≥ 6:1) — enforced by `FinFoxThemeTest`.
+The specified light-mode green and amber reach 3.2–3.3:1 on white, which meets the 3:1 non-text
+minimum, so they're never the only cue. White text never sits on pure Fox Orange (2.7:1): the
+gradient keeps orange to the far corner and the balance breakdown has a plum scrim.
+
+Typography: **Inter** (bundled variable font, `res/font/inter.ttf`, SIL OFL — see `licenses/Inter-OFL.txt`),
+balance 32–34 sp, headings 22 sp, card titles 17 sp, body 14–16 sp, captions 12 sp; all in `sp`, so
+Android font scaling applies. Shapes: buttons 14 dp, inputs 12 dp, cards 20 dp, hero cards 24 dp,
+8 dp spacing grid, 16 dp screen padding, 48 dp minimum touch targets. On tablets content is centred at
+≤ 720 dp wide.
+
+Animations: splash mascot entrance, navigation transitions, button press scale, dashboard balance
+count-up, chart load-in, animated success tick on saves, goal progress bars. All of them turn off
+when Android's animator duration scale is 0 ("Remove animations").
+
+**Settings → Appearance**: Light Mode / Dark Mode / Follow System, stored in DataStore (`appearance`),
+applied immediately and kept after restart (the previous value stored in Room is migrated automatically).
+
+Brand assets: the fox mascot is `drawable-nodpi/finfox_logo.png` (+ `finfox_logo_small.png` for widgets);
+the adaptive launcher icon uses it as the foreground over lavender, with a monochrome layer for Android 13
+themed icons; the system splash shows it on Deep Plum.
 
 ## Google Cloud / Firebase configuration
 
@@ -310,7 +361,7 @@ delete, open related record; history kept ~90 days).
 
 ## Tests
 
-`./gradlew testDebugUnitTest` runs 122 tests on the JVM (Robolectric for Room/DataStore/Compose/Glance):
+`./gradlew testDebugUnitTest` runs 126 tests on the JVM (Robolectric for Room/DataStore/Compose/Glance):
 
 | Suite | Covers |
 |---|---|
@@ -327,6 +378,7 @@ delete, open related record; history kept ~90 days).
 | `DriveApiTest` | multipart/related upload into appDataFolder, paging, download limits, 401/403/429/5xx/quota/network mapping (MockWebServer) |
 | `NotificationSystemTest` | actions, lock-screen privacy, category/master switches, history when permission denied, quiet hours, snooze → single re-post, duplicate prevention, card-bill & goal reminders, milestones, repayments |
 | `WidgetTest` | balance excludes credit limits, card/upcoming models, **rendering at small/medium/large**, privacy masking, refresh after transactions without polling |
+| `FinFoxThemeTest` | spec colours, WCAG contrast for text/buttons/nav/status colours in both themes, theme persistence across restart and migration of the old setting |
 | `PinManagerTest`, `AppLockManagerTest`, `ComponentsUiTest` | PIN/lockout/recovery, auto-lock, Compose components |
 
 Instrumented tests (`./gradlew connectedDebugAndroidTest`, `app/src/androidTest`) cover the real Android

@@ -66,7 +66,7 @@ import com.mymoney.app.ui.components.SecondaryButton
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.components.TonalButton
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -137,10 +137,10 @@ fun BackupScreen(nav: NavController, vm: BackupViewModel = hiltViewModel(), clou
             }
 
             AppCard(contentPadding = 0.dp) {
-                ListRow(Icons.Filled.Key, Color(0xFFF59E0B), if (s.hasPassphrase) "Recovery passphrase set" else "Set a recovery passphrase",
+                ListRow(Icons.Filled.Key, FinFoxTheme.colors.gold, if (s.hasPassphrase) "Recovery passphrase set" else "Set a recovery passphrase",
                     if (s.hasPassphrase) "Needed to restore on another phone. Tap to change." else "Required before your first Drive backup",
                     onClick = { passphraseDialog = true }) {
-                    if (s.hasPassphrase) Chip("Set", FinanceTheme.colors.income) else Chip("Required", MaterialTheme.colorScheme.error)
+                    if (s.hasPassphrase) Chip("Set", FinFoxTheme.colors.income) else Chip("Required", MaterialTheme.colorScheme.error)
                 }
             }
 
@@ -186,7 +186,7 @@ fun BackupScreen(nav: NavController, vm: BackupViewModel = hiltViewModel(), clou
                         password != confirm -> "Passwords don't match"
                         else -> null
                     }
-                    if (error == null) { vm.beforeExternalActivity(); exportLauncher.launch("MyMoney_backup_$stamp.mmbk") }
+                    if (error == null) { vm.beforeExternalActivity(); exportLauncher.launch("FinFox_backup_$stamp.mmbk") }
                 }, loading = busy, icon = Icons.Filled.Backup)
                 Spacer(Modifier.height(8.dp))
                 SecondaryButton("Restore from a file", { vm.beforeExternalActivity(); openLauncher.launch(arrayOf("*/*")) }, Modifier.fillMaxWidth(), icon = Icons.Filled.Restore)
@@ -196,15 +196,15 @@ fun BackupScreen(nav: NavController, vm: BackupViewModel = hiltViewModel(), clou
                 Text("Export all transactions for spreadsheets or printing. Exports are not encrypted. Use Reports to export a specific period.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Spacer(Modifier.height(10.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TonalButton("CSV", { vm.beforeExternalActivity(); csv.launch("MyMoney_transactions_$stamp.csv") }, Modifier.weight(1f), icon = Icons.Filled.Description)
-                    TonalButton("PDF", { vm.beforeExternalActivity(); pdf.launch("MyMoney_report_$stamp.pdf") }, Modifier.weight(1f), icon = Icons.Filled.PictureAsPdf)
+                    TonalButton("CSV", { vm.beforeExternalActivity(); csv.launch("FinFox_transactions_$stamp.csv") }, Modifier.weight(1f), icon = Icons.Filled.Description)
+                    TonalButton("PDF", { vm.beforeExternalActivity(); pdf.launch("FinFox_report_$stamp.pdf") }, Modifier.weight(1f), icon = Icons.Filled.PictureAsPdf)
                 }
             }
         }
     }
     if (passphraseDialog) PassphraseDialog(cloudVm, changing = s.hasPassphrase) { passphraseDialog = false }
     if (disconnect) ConfirmDialog(
-        "Disconnect Google Drive?", "Automatic backups stop and My Money's Drive permission is revoked. Backups already in your Drive are kept.",
+        "Disconnect Google Drive?", "Automatic backups stop and FinFox's Drive permission is revoked. Backups already in your Drive are kept.",
         "Disconnect", onConfirm = cloudVm::disconnectDrive, onDismiss = { disconnect = false },
     )
     if (undo) ConfirmDialog(

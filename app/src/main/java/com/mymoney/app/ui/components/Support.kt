@@ -14,12 +14,16 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton
 
+/** A snackbar message; [success] ones get the animated confirmation tick. */
+data class UiNote(val text: String, val success: Boolean = false)
+
 /** App-wide snackbar messages emitted by ViewModels and shown by the root scaffold. */
 @Singleton
 class MessageBus @Inject constructor() {
-    private val channel = Channel<String>(Channel.BUFFERED)
+    private val channel = Channel<UiNote>(Channel.BUFFERED)
     val messages = channel.receiveAsFlow()
-    fun show(text: String) { channel.trySend(text) }
+    fun show(text: String) { channel.trySend(UiNote(text)) }
+    fun success(text: String) { channel.trySend(UiNote(text, success = true)) }
 }
 
 val LocalCurrency = compositionLocalOf { "INR" }
@@ -40,7 +44,7 @@ abstract class BaseViewModel(protected val bus: MessageBus) : ViewModel() {
             _busy.value = true
             try {
                 block()
-                success?.let(bus::show)
+                success?.let(bus::success)
                 if (finishOnSuccess) finish()
             } catch (e: CancellationException) {
                 throw e

@@ -108,7 +108,7 @@ class CloudBackupService @Inject constructor(
             val payload = backup.snapshot()
             val encrypted = withContext(Dispatchers.Default) { BackupCrypto.encryptWithKey(backup.encode(payload), key) }
             val sha = BackupCrypto.sha256Hex(encrypted)
-            val name = "mymoney-backup-" + NAME_FMT.format(Instant.ofEpochMilli(now)) + ".mmbk"
+            val name = "finfox-backup-" + NAME_FMT.format(Instant.ofEpochMilli(now)) + ".mmbk"
             val props = mapOf(
                 "app" to "mymoney", "format" to BackupPayload.CURRENT_FORMAT.toString(), "schema" to AppDatabase.VERSION.toString(),
                 "device" to (Build.MODEL ?: "Android").take(60), "transactions" to payload.transactions.size.toString(),
@@ -200,7 +200,7 @@ class CloudBackupService @Inject constructor(
         dao.deleteForFile(b.fileId)
     }
 
-    private fun DriveFile.isOurs() = appProperties?.get("app") == "mymoney" || name?.startsWith("mymoney-backup-") == true
+    private fun DriveFile.isOurs() = appProperties?.get("app") == "mymoney" || (name?.startsWith("finfox-backup-") == true || name?.startsWith("mymoney-backup-") == true)
     private fun DriveFile.createdMillis() = try { Instant.parse(createdTime).toEpochMilli() } catch (e: Exception) { 0L }
 
     companion object {

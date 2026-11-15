@@ -42,7 +42,7 @@ import com.mymoney.app.ui.components.LocalCurrency
 import com.mymoney.app.ui.components.MoneyText
 import com.mymoney.app.ui.components.PillTabs
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import java.time.LocalDate
 
 @Composable
@@ -52,7 +52,7 @@ fun PeopleScreen(nav: NavController, vm: PeopleViewModel = hiltViewModel()) {
     val loans by vm.loans.collectAsStateWithLifecycle()
     val people by vm.people.collectAsStateWithLifecycle()
     val t by vm.totals.collectAsStateWithLifecycle()
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     val currency = LocalCurrency.current
     AppScaffold(
         title = "Money with People", onBack = { nav.popBackStack() },
@@ -123,7 +123,7 @@ fun PeopleScreen(nav: NavController, vm: PeopleViewModel = hiltViewModel()) {
 
 @Composable
 fun LoanRow(l: LoanDetail, onClick: () -> Unit) {
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     val currency = LocalCurrency.current
     val today = Dates.today()
     val due = l.loan.dueEpochDay?.let(LocalDate::ofEpochDay)

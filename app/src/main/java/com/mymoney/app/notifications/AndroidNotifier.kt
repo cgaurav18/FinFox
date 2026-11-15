@@ -38,7 +38,7 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
         else "Spent ${m(spentMinor, currency)} of ${m(limitMinor, currency)} this month. ${m(limitMinor - spentMinor, currency)} left."
         dispatcher.post(
             NotificationSpec((ID_BUDGET + budgetId).toInt(), NotificationCategory.BUDGET, title, text,
-                title, "Open My Money to see your budget.", "budgets", ReminderRefType.BUDGET.name, budgetId)
+                title, "Open FinFox to see your budget.", "budgets", ReminderRefType.BUDGET.name, budgetId)
         )
     }
 
@@ -54,7 +54,7 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
                 (ID_SCHEDULE + scheduleId).toInt(), NotificationCategory.PAYMENT, head,
                 "$kind of ${m(amountMinor, currency)} due on ${day(due)}. Nothing is paid automatically — mark it as paid once you've paid.",
                 if (overdue) "Overdue $kind" else "$kind ${Dates.dueLabel(due).replaceFirstChar { it.lowercase() }}",
-                "Open My Money to see the details.",
+                "Open FinFox to see the details.",
                 "schedule/$scheduleId", ReminderRefType.SCHEDULE.name, scheduleId,
                 listOf(NotificationAction.MARK_PAID, NotificationAction.REMIND_LATER, NotificationAction.DISMISS),
             )
@@ -73,7 +73,7 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
             ". ${Dates.dueLabel(due)} (${day(due)})."
         dispatcher.post(
             NotificationSpec((ID_LOAN + loanId).toInt(), NotificationCategory.LOAN, head, text,
-                if (gave) "Money expected" else "Repayment due", "Open My Money to see the details.",
+                if (gave) "Money expected" else "Repayment due", "Open FinFox to see the details.",
                 "loan/$loanId", ReminderRefType.LOAN.name, loanId,
                 listOf(NotificationAction.VIEW, NotificationAction.REMIND_LATER, NotificationAction.DISMISS))
         )
@@ -84,7 +84,7 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
         dispatcher.post(
             NotificationSpec((ID_CARD + accountId).toInt(), NotificationCategory.PAYMENT, title,
                 "Outstanding ${m(outstandingMinor, currency)}, due ${day(due)}. Record the bill payment as a transfer to the card.",
-                "Credit card bill due", "Open My Money to see the details.",
+                "Credit card bill due", "Open FinFox to see the details.",
                 "account-detail/$accountId", ReminderRefType.CARD.name, accountId,
                 listOf(NotificationAction.VIEW, NotificationAction.REMIND_LATER, NotificationAction.DISMISS))
         )
@@ -96,7 +96,7 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
             if (outstandingMinor > 0) " ${m(outstandingMinor, currency)} still outstanding." else " Nothing is outstanding."
         dispatcher.post(
             NotificationSpec((ID_REPAYMENT + loanId).toInt(), NotificationCategory.LOAN, title, text, title,
-                "Open My Money to see the details.", "loan/$loanId", ReminderRefType.LOAN.name, loanId)
+                "Open FinFox to see the details.", "loan/$loanId", ReminderRefType.LOAN.name, loanId)
         )
     }
 
@@ -109,7 +109,7 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
         }
         dispatcher.post(
             NotificationSpec((ID_GOAL + goalId).toInt(), NotificationCategory.GOAL, title, text, "Savings goal update",
-                "Open My Money to see your progress.", "goal/$goalId", ReminderRefType.GOAL.name, goalId)
+                "Open FinFox to see your progress.", "goal/$goalId", ReminderRefType.GOAL.name, goalId)
         )
     }
 
@@ -118,7 +118,7 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
             BackupEvent.SUCCESS -> "Backup complete" to (detail ?: "Your data was backed up to Google Drive.")
             BackupEvent.FAILED -> "Backup failed" to (detail ?: "The Google Drive backup couldn't be completed.")
             BackupEvent.RESTORED -> "Restore completed" to (detail ?: "Your data was restored.")
-            BackupEvent.AUTH_EXPIRED -> "Google Drive authorization expired" to "Open My Money and reconnect Google Drive to keep backing up."
+            BackupEvent.AUTH_EXPIRED -> "Google Drive authorization expired" to "Open FinFox and reconnect Google Drive to keep backing up."
         }
         dispatcher.post(
             NotificationSpec(ID_BACKUP + event.ordinal, NotificationCategory.BACKUP, title, text, title, text, "backup",

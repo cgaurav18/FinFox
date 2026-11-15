@@ -58,7 +58,7 @@ fun LockScreen(vm: LockViewModel = hiltViewModel()) {
         if (s.lockedUntil != 0L) vm.clearLockout()
         now = System.currentTimeMillis()
     }
-    val bio = { Biometrics.prompt(context, "Unlock My Money", "Confirm it's you", onSuccess = vm::biometricSuccess) }
+    val bio = { Biometrics.prompt(context, "Unlock FinFox", "Confirm it's you", onSuccess = vm::biometricSuccess) }
     LaunchedEffect(canBio) { if (canBio) bio() }
     BackHandler { Biometrics.findActivity(context)?.moveTaskToBack(true) }
 

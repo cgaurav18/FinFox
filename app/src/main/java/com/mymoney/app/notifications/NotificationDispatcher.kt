@@ -9,6 +9,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
@@ -77,6 +78,8 @@ class NotificationDispatcher @Inject constructor(
     private val db: AppDatabase,
 ) {
     companion object {
+        /** FinFox Primary Purple accent for notification icons. */
+        private val BRAND_COLOR = com.mymoney.app.ui.theme.FinFoxPalette.PrimaryPurple.toArgb()
         const val CHANNEL_REMINDERS = "reminders"
         const val CHANNEL_BUDGET = "budget"
         const val CHANNEL_GOALS = "goals"
@@ -153,7 +156,7 @@ class NotificationDispatcher @Inject constructor(
         val channel = channelFor(spec.category)
         val b = NotificationCompat.Builder(context, channel)
             .setSmallIcon(R.drawable.ic_notification)
-            .setColor(0xFF5B21B6.toInt())
+            .setColor(BRAND_COLOR)
             .setContentTitle(spec.title)
             .setContentText(spec.text)
             .setStyle(NotificationCompat.BigTextStyle().bigText(spec.text))
@@ -166,7 +169,7 @@ class NotificationDispatcher @Inject constructor(
         if (hideAmounts) {
             b.setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             b.setPublicVersion(
-                NotificationCompat.Builder(context, channel).setSmallIcon(R.drawable.ic_notification).setColor(0xFF5B21B6.toInt())
+                NotificationCompat.Builder(context, channel).setSmallIcon(R.drawable.ic_notification).setColor(BRAND_COLOR)
                     .setContentTitle(spec.publicTitle).setContentText(spec.publicText).build()
             )
         }

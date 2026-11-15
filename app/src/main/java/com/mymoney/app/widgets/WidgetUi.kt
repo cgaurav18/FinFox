@@ -45,6 +45,9 @@ import com.mymoney.app.MainActivity
 import com.mymoney.app.R
 import com.mymoney.app.notifications.NotificationDispatcher
 import com.mymoney.app.ui.theme.DarkColors
+import com.mymoney.app.ui.theme.DarkFinFoxColors
+import com.mymoney.app.ui.theme.FinFoxPalette
+import com.mymoney.app.ui.theme.LightFinFoxColors
 import com.mymoney.app.ui.theme.LightColors
 
 object WidgetSizes {
@@ -56,12 +59,17 @@ object WidgetSizes {
 /** False while rendering in-app previews (no click handlers there). */
 val LocalInteractive = staticCompositionLocalOf { true }
 
+/** FinFox colours for widgets: same tokens as the app (status colours lightened for text on dark). */
 object WidgetColors {
     val scheme = ColorProviders(light = LightColors, dark = DarkColors)
-    val income = ColorProvider(day = Color(0xFF16A34A), night = Color(0xFF4ADE80))
-    val expense = ColorProvider(day = Color(0xFFDC2626), night = Color(0xFFF87171))
-    val warning = ColorProvider(day = Color(0xFFD97706), night = Color(0xFFFBBF24))
-    val onBrand = ColorProvider(day = Color.White, night = Color.White)
+    val income = ColorProvider(day = LightFinFoxColors.income, night = DarkFinFoxColors.income)
+    val expense = ColorProvider(day = LightFinFoxColors.expense, night = DarkFinFoxColors.expense)
+    val transfer = ColorProvider(day = LightFinFoxColors.transfer, night = DarkFinFoxColors.transfer)
+    val warning = ColorProvider(day = LightFinFoxColors.warning, night = DarkFinFoxColors.warning)
+    val overdue = ColorProvider(day = LightFinFoxColors.overdue, night = DarkFinFoxColors.overdue)
+    /** Orange highlight (selected / emphasis), per the FinFox widget brief. */
+    val highlight = ColorProvider(day = FinFoxPalette.FoxOrange, night = FinFoxPalette.FoxOrange)
+    val brand = ColorProvider(day = FinFoxPalette.PrimaryPurple, night = FinFoxPalette.DarkPrimaryText)
 }
 
 @Composable
@@ -93,9 +101,7 @@ fun WidgetContainer(onClick: Action?, padding: Int = 10, content: @Composable Co
 @Composable
 fun WidgetHeader(title: String, subtitle: String? = null, trailing: (@Composable RowScope.() -> Unit)? = null) {
     Row(GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Box(GlanceModifier.size(24.dp).background(ImageProvider(R.drawable.widget_logo_bg)), contentAlignment = Alignment.Center) {
-            Image(ImageProvider(R.drawable.ic_splash_logo), contentDescription = "My Money", modifier = GlanceModifier.size(22.dp))
-        }
+        Image(ImageProvider(R.drawable.finfox_logo_small), contentDescription = "FinFox", modifier = GlanceModifier.size(28.dp))
         Spacer(GlanceModifier.width(8.dp))
         Column(GlanceModifier.defaultWeight()) {
             Label(title, size = 13.sp, bold = true, color = GlanceTheme.colors.onSurface)

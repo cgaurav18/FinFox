@@ -128,7 +128,7 @@ class FirebaseGoogleAuth @Inject constructor(@ApplicationContext private val con
         val user = try {
             auth.signInWithCredential(GoogleAuthProvider.getCredential(google.idToken, null)).awaitResult().user
         } catch (e: FirebaseNetworkException) {
-            throw GoogleAuthException("You're offline. Connect to the internet to sign in — you can keep using My Money offline.")
+            throw GoogleAuthException("You're offline. Connect to the internet to sign in — you can keep using FinFox offline.")
         } catch (e: Exception) {
             throw GoogleAuthException("Couldn't verify your Google account: ${e.message ?: e.javaClass.simpleName}")
         } ?: throw GoogleAuthException("Couldn't verify your Google account")

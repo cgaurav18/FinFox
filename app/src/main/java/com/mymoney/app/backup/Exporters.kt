@@ -55,11 +55,11 @@ class Exporter @javax.inject.Inject constructor(@dagger.hilt.android.qualifiers.
     suspend fun writePdf(uri: Uri, list: List<TransactionDetail>, range: DateRange, currency: String, owner: String) = withContext(Dispatchers.IO) {
         val doc = PdfDocument()
         val w = 595; val h = 842; val margin = 40f
-        val title = Paint().apply { textSize = 20f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); color = 0xFF5B21B6.toInt(); isAntiAlias = true }
-        val head = Paint().apply { textSize = 12f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); color = 0xFF111827.toInt(); isAntiAlias = true }
-        val body = Paint().apply { textSize = 9.5f; color = 0xFF374151.toInt(); isAntiAlias = true }
-        val muted = Paint().apply { textSize = 9f; color = 0xFF6B7280.toInt(); isAntiAlias = true }
-        val line = Paint().apply { color = 0xFFE5E7EB.toInt(); strokeWidth = 1f }
+        val title = Paint().apply { textSize = 20f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); color = 0xFF5B0FA6.toInt() /* FinFox Primary Purple */; isAntiAlias = true }
+        val head = Paint().apply { textSize = 12f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); color = 0xFF25083F.toInt(); isAntiAlias = true }
+        val body = Paint().apply { textSize = 9.5f; color = 0xFF25083F.toInt(); isAntiAlias = true }
+        val muted = Paint().apply { textSize = 9f; color = 0xFF62576F.toInt(); isAntiAlias = true }
+        val line = Paint().apply { color = 0xFFE9E1F0.toInt(); strokeWidth = 1f }
         var pageNo = 0
         var page: PdfDocument.Page? = null
         var y = 0f
@@ -68,13 +68,13 @@ class Exporter @javax.inject.Inject constructor(@dagger.hilt.android.qualifiers.
             pageNo++
             page = doc.startPage(PdfDocument.PageInfo.Builder(w, h, pageNo).create())
             y = margin
-            page!!.canvas.drawText("My Money • Page $pageNo", margin, h - 20f, muted)
+            page!!.canvas.drawText("FinFox • Page $pageNo", margin, h - 20f, muted)
         }
         fun ensure(space: Float) { if (y + space > h - margin) newPage() }
         fun clip(s: String, max: Int) = if (s.length > max) s.take(max - 1) + "…" else s
         newPage()
         val c = { page!!.canvas }
-        c().drawText("My Money – Financial Report", margin, y + 16, title); y += 30
+        c().drawText("FinFox – Financial Report", margin, y + 16, title); y += 30
         c().drawText("${Dates.formatDay(range.start)} – ${Dates.formatDay(range.endInclusive)}" + if (owner.isNotBlank()) "  •  $owner" else "", margin, y + 10, muted); y += 26
         val s = Reports.summary(list)
         listOf("Income" to s.incomeMinor, "Expenses" to s.expenseMinor, "Net savings" to s.netMinor, "Transfers" to s.transferMinor).forEachIndexed { i, (k, v) ->

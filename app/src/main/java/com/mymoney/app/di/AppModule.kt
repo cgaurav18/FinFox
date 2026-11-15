@@ -27,7 +27,10 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import javax.inject.Named
 import javax.inject.Singleton
+import com.mymoney.app.data.repo.AppearanceRepository
+import com.mymoney.app.data.repo.SettingsRepository
 
 @Module
 @InstallIn(SingletonComponent::class)
@@ -41,6 +44,15 @@ object AppModule {
     @Provides @Singleton
     fun securityStore(@ApplicationContext context: Context): DataStore<Preferences> =
         PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("security") }
+
+    /** UI preferences (theme). Separate file from the security store. */
+    @Provides @Singleton @Named("appearance")
+    fun appearanceStore(@ApplicationContext context: Context): DataStore<Preferences> =
+        PreferenceDataStoreFactory.create { context.preferencesDataStoreFile("appearance") }
+
+    @Provides @Singleton
+    fun appearance(@Named("appearance") store: DataStore<Preferences>, settings: SettingsRepository): AppearanceRepository =
+        AppearanceRepository(store, settings)
 
     @Provides @Singleton
     fun secretBox(): SecretBox = KeystoreSecretBox()

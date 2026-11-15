@@ -15,8 +15,8 @@ import com.mymoney.app.data.db.TxnType
 import com.mymoney.app.ui.components.AppIcons
 import com.mymoney.app.ui.components.ListRow
 import com.mymoney.app.ui.components.MoneyText
-import com.mymoney.app.ui.theme.FinanceColors
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxColors
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 data class TxnLook(val title: String, val subtitle: String, val icon: ImageVector, val color: Color, val signedAmount: Long, val amountColor: Color)
 
@@ -27,13 +27,13 @@ fun txnTypeLabel(t: TxnType) = when (t) {
 }
 
 /** Presentation rules for a ledger row; [contextAccountId] flips transfer signs on an account's own history. */
-fun txnLook(d: TransactionDetail, fin: FinanceColors, neutral: Color, contextAccountId: Long? = null, showTime: Boolean = true): TxnLook {
+fun txnLook(d: TransactionDetail, fin: FinFoxColors, neutral: Color, contextAccountId: Long? = null, showTime: Boolean = true): TxnLook {
     val t = d.txn
     val time = if (showTime) Dates.formatTime(t.dateMillis) else Dates.formatDay(t.dateMillis)
     val acct = d.accountName + if (d.accountType == AccountType.CREDIT_CARD) " (card)" else ""
     return when (t.type) {
-        TxnType.INCOME -> TxnLook(t.merchant ?: d.categoryName ?: "Income", "$acct • $time", AppIcons.forKey(d.categoryIconKey), Color(d.categoryColor ?: 0xFF16A34A), t.amountMinor, fin.income)
-        TxnType.EXPENSE -> TxnLook(t.merchant ?: d.categoryName ?: "Expense", "${d.categoryName ?: ""} • $acct • $time".trimStart(' ', '•'), AppIcons.forKey(d.categoryIconKey), Color(d.categoryColor ?: 0xFFDC2626), -t.amountMinor, fin.expense)
+        TxnType.INCOME -> TxnLook(t.merchant ?: d.categoryName ?: "Income", "$acct • $time", AppIcons.forKey(d.categoryIconKey), d.categoryColor?.let { Color(it) } ?: fin.income, t.amountMinor, fin.income)
+        TxnType.EXPENSE -> TxnLook(t.merchant ?: d.categoryName ?: "Expense", "${d.categoryName ?: ""} • $acct • $time".trimStart(' ', '•'), AppIcons.forKey(d.categoryIconKey), d.categoryColor?.let { Color(it) } ?: fin.expense, -t.amountMinor, fin.expense)
         TxnType.TRANSFER -> {
             val toCard = d.toAccountType == AccountType.CREDIT_CARD
             val sign = when (contextAccountId) { null -> 0; t.accountId -> -1; else -> 1 }
@@ -52,7 +52,7 @@ fun txnLook(d: TransactionDetail, fin: FinanceColors, neutral: Color, contextAcc
 
 @Composable
 fun TxnRow(d: TransactionDetail, onClick: () -> Unit, contextAccountId: Long? = null, showTime: Boolean = true) {
-    val look = txnLook(d, FinanceTheme.colors, MaterialTheme.colorScheme.onSurface, contextAccountId, showTime)
+    val look = txnLook(d, FinFoxTheme.colors, MaterialTheme.colorScheme.onSurface, contextAccountId, showTime)
     ListRow(look.icon, look.color, look.title, look.subtitle, onClick = onClick) {
         MoneyText(look.signedAmount, color = look.amountColor, signed = look.signedAmount > 0 && (d.txn.type != TxnType.TRANSFER || contextAccountId != null), style = MaterialTheme.typography.titleSmall)
     }

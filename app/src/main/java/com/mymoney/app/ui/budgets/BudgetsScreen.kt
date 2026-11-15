@@ -60,7 +60,7 @@ import com.mymoney.app.ui.components.MessageBus
 import com.mymoney.app.ui.components.MonthSelector
 import com.mymoney.app.ui.components.ProgressBar
 import com.mymoney.app.ui.components.SectionHeader
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -94,7 +94,7 @@ fun BudgetsScreen(nav: NavController, vm: BudgetsViewModel = hiltViewModel()) {
     var adding by remember { mutableStateOf(false) }
     var deleting by remember { mutableStateOf<BudgetWithSpent?>(null) }
     val currency = LocalCurrency.current
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     AppScaffold(
         title = "Budgets", onBack = { nav.popBackStack() },
         actions = { IconButton(onClick = vm::copyPrevious) { Icon(Icons.Filled.ContentCopy, "Copy last month's budgets") } },
@@ -152,7 +152,7 @@ private fun barColor(p: Int, ok: Color, warn: Color, bad: Color) = when { p >= 1
 @Composable
 private fun BudgetRow(b: BudgetWithSpent, onEdit: () -> Unit, onDelete: () -> Unit) {
     val currency = LocalCurrency.current
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     val p = Money.percent(b.spentMinor, b.budget.limitMinor)
     AppCard(onClick = onEdit) {
         Row(verticalAlignment = Alignment.CenterVertically) {

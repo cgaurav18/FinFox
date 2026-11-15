@@ -43,7 +43,7 @@ import com.mymoney.app.ui.components.LocalCurrency
 import com.mymoney.app.ui.components.SecondaryButton
 import com.mymoney.app.ui.components.TonalButton
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @Composable
 fun TransactionDetailScreen(nav: NavController, vm: TransactionDetailViewModel = hiltViewModel()) {
@@ -55,7 +55,7 @@ fun TransactionDetailScreen(nav: NavController, vm: TransactionDetailViewModel =
         val detail = d
         if (detail == null) { EmptyState(Icons.Filled.ReceiptLong, "Transaction not found", "It may have been deleted.", Modifier.padding(pad)); return@AppScaffold }
         val t = detail.txn
-        val look = txnLook(detail, FinanceTheme.colors, MaterialTheme.colorScheme.onSurface)
+        val look = txnLook(detail, FinFoxTheme.colors, MaterialTheme.colorScheme.onSurface)
         Column(Modifier.padding(pad).fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
             Column(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 IconBadge(look.icon, look.color, 64.dp)

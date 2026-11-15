@@ -112,8 +112,8 @@ class BackupManager @Inject constructor(
 
     /** Schema/version checks plus referential integrity, before anything touches the database. */
     fun validate(p: BackupPayload) {
-        if (p.formatVersion !in 1..BackupPayload.CURRENT_FORMAT) throw BackupException("This backup was made by a newer version of My Money")
-        if (p.schemaVersion > AppDatabase.VERSION) throw BackupException("This backup was made by a newer version of My Money")
+        if (p.formatVersion !in 1..BackupPayload.CURRENT_FORMAT) throw BackupException("This backup was made by a newer version of FinFox")
+        if (p.schemaVersion > AppDatabase.VERSION) throw BackupException("This backup was made by a newer version of FinFox")
         if (p.schemaVersion < 1) throw BackupException("The backup has an invalid schema version")
         val problems = mutableListOf<String>()
         fun <T> unique(name: String, list: List<T>, id: (T) -> Long) { if (list.map(id).toSet().size != list.size) problems += "duplicate $name ids" }

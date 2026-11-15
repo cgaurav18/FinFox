@@ -64,7 +64,7 @@ import com.mymoney.app.ui.components.LocalCurrency
 import com.mymoney.app.ui.components.PillTabs
 import com.mymoney.app.ui.components.PrimaryButton
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -108,7 +108,7 @@ fun TransactionsScreen(nav: NavController, vm: TransactionsViewModel = hiltViewM
                             Row(Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background).padding(vertical = 6.dp)) {
                                 Text(Dates.relativeDayLabel(date), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
                                 val net = list.sumOf { when (it.txn.type) { TxnType.INCOME -> it.txn.amountMinor; TxnType.EXPENSE -> -it.txn.amountMinor; else -> 0 } }
-                                if (net != 0L) Text(Money.format(net, currency, signed = true), style = MaterialTheme.typography.labelMedium, color = if (net > 0) FinanceTheme.colors.income else FinanceTheme.colors.expense)
+                                if (net != 0L) Text(Money.format(net, currency, signed = true), style = MaterialTheme.typography.labelMedium, color = if (net > 0) FinFoxTheme.colors.income else FinFoxTheme.colors.expense)
                             }
                         }
                         item(key = "g$date") {

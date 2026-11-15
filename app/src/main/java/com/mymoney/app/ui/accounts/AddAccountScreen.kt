@@ -64,7 +64,7 @@ fun AddAccountScreen(nav: NavController, vm: AddAccountViewModel = hiltViewModel
                         AppTextField(f.statementDay, { v -> if (v.all(Char::isDigit)) vm.edit { it.copy(statementDay = v) } }, "Statement day", Modifier.weight(1f), error = f.errors["statement"], keyboardType = KeyboardType.Number, maxLength = 2, placeholder = "1-31")
                         AppTextField(f.dueDay, { v -> if (v.all(Char::isDigit)) vm.edit { it.copy(dueDay = v) } }, "Payment due day", Modifier.weight(1f), error = f.errors["due"], keyboardType = KeyboardType.Number, maxLength = 2, placeholder = "1-31")
                     }
-                    Text("Never enter your full card number, CVV or PIN. My Money only needs the last 4 digits to tell cards apart.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("Never enter your full card number, CVV or PIN. FinFox only needs the last 4 digits to tell cards apart.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 AccountType.CASH -> {
                     AppTextField(f.name, { v -> vm.edit { it.copy(name = v) } }, "Wallet name", error = f.errors["name"], placeholder = "e.g. Cash Wallet", capitalization = KeyboardCapitalization.Words, maxLength = 40)

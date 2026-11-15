@@ -157,7 +157,7 @@ private fun PinStep(s: OnboardingState, vm: OnboardingViewModel) {
     val confirming = s.step == OnboardingStep.CONFIRM_PIN
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
         Spacer(Modifier.height(16.dp))
-        StepHeader(Icons.Filled.Shield, if (confirming) "Confirm your PIN" else "Create a PIN", if (confirming) "Enter the same PIN again" else "You'll use this PIN to open My Money")
+        StepHeader(Icons.Filled.Shield, if (confirming) "Confirm your PIN" else "Create a PIN", if (confirming) "Enter the same PIN again" else "You'll use this PIN to open FinFox")
         Spacer(Modifier.height(20.dp))
         if (!confirming) {
             PillTabs(listOf(4, 6), s.pinLength, { "$it digits" }, vm::setPinLength, Modifier.width(220.dp))
@@ -209,6 +209,6 @@ private fun RecoveryStep(code: String, onDone: () -> Unit) {
             Text("I've saved my recovery code somewhere safe", style = MaterialTheme.typography.bodyMedium)
         }
         Spacer(Modifier.height(16.dp))
-        PrimaryButton("Start using My Money", onClick = onDone, enabled = saved)
+        PrimaryButton("Start using FinFox", onClick = onDone, enabled = saved)
     }
 }

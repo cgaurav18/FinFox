@@ -37,6 +37,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.material3.RadioButton
+import androidx.compose.ui.semantics.Role
+import com.mymoney.app.ui.theme.FinFoxTheme
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -67,6 +74,8 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
     val s by vm.state.collectAsStateWithLifecycle()
     val sec by vm.security.collectAsStateWithLifecycle()
     val profile by vm.profile.collectAsStateWithLifecycle()
+    val themeMode by vm.themeMode.collectAsStateWithLifecycle()
+    val fin = FinFoxTheme.colors
     val backupPrefs by vm.backupPrefs.collectAsStateWithLifecycle()
     val widgetPrefs by vm.widgetPrefs.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -89,9 +98,24 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             }
             item { SectionHeader("Appearance") }
             item {
-                AppCard {
-                    Text("Theme", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    PillTabs(ThemeMode.entries, st.themeMode, { when (it) { ThemeMode.SYSTEM -> "System"; ThemeMode.LIGHT -> "Light"; ThemeMode.DARK -> "Dark" } }, vm::setTheme, Modifier.padding(top = 8.dp))
+                AppCard(contentPadding = 0.dp) {
+                    listOf(
+                        Triple(ThemeMode.LIGHT, "Light Mode", "Bright background with white cards"),
+                        Triple(ThemeMode.DARK, "Dark Mode", "Deep purple background, easy on the eyes"),
+                        Triple(ThemeMode.SYSTEM, "Follow System", "Match your phone's theme setting"),
+                    ).forEach { (mode, title, sub) ->
+                        Row(
+                            Modifier.fillMaxWidth().selectable(selected = themeMode == mode, role = Role.RadioButton) { vm.setTheme(mode) }
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column(Modifier.weight(1f)) {
+                                Text(title, style = MaterialTheme.typography.bodyLarge)
+                                Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            RadioButton(selected = themeMode == mode, onClick = null)
+                        }
+                    }
                 }
             }
             item { SectionHeader("Account") }
@@ -108,7 +132,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             item { SectionHeader("Cloud Backup") }
             item {
                 AppCard(contentPadding = 0.dp) {
-                    Row2(Icons.Filled.AddToDrive, Color(0xFF16A34A), if (profile.driveConnected) "Google Drive connected" else "Connect Google Drive",
+                    Row2(Icons.Filled.AddToDrive, fin.savings, if (profile.driveConnected) "Google Drive connected" else "Connect Google Drive",
                         when {
                             !profile.signedIn -> "Sign in first"
                             profile.driveNeedsReauth -> "Permission expired — reconnect"
@@ -116,17 +140,17 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                             else -> "Encrypted backups in your own Drive"
                         }) { nav.navigate(Routes.DRIVE) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Row2(Icons.Filled.Backup, Color(0xFF16A34A), "Backup & Restore",
+                    Row2(Icons.Filled.Backup, fin.savings, "Backup & Restore",
                         "Last backup: " + (backupPrefs.lastSuccessAt?.let { com.mymoney.app.core.Dates.formatDay(it) } ?: "never") +
                             if (backupPrefs.autoBackupEnabled) " · Auto ${backupPrefs.frequency.label.lowercase()}" else " · Automatic backup off") { nav.navigate(Routes.BACKUP) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Row2(Icons.Filled.History, Color(0xFF16A34A), "Backup history", "Restore or delete Drive backups") { nav.navigate(Routes.BACKUP_HISTORY) }
+                    Row2(Icons.Filled.History, fin.savings, "Backup history", "Restore or delete Drive backups") { nav.navigate(Routes.BACKUP_HISTORY) }
                 }
             }
             item { SectionHeader("Widgets") }
             item {
                 AppCard(contentPadding = 0.dp) {
-                    Row2(Icons.Filled.Widgets, Color(0xFF7C3AED), "Widget gallery", "Previews of 7 widgets and how to add them") { nav.navigate(Routes.WIDGETS) }
+                    Row2(Icons.Filled.Widgets, MaterialTheme.colorScheme.secondary, "Widget gallery", "Previews of 7 widgets and how to add them") { nav.navigate(Routes.WIDGETS) }
                     Column(Modifier.padding(horizontal = 16.dp)) {
                         LabeledSwitchRow("Widget privacy mode", "Mask amounts on home screen widgets", widgetPrefs.privacyMode, vm::setWidgetPrivacy)
                     }
@@ -135,10 +159,10 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             item { SectionHeader("Notifications") }
             item {
                 AppCard(contentPadding = 0.dp) {
-                    Row2(Icons.Filled.Tune, Color(0xFFF97316), "Reminder settings",
+                    Row2(Icons.Filled.Tune, fin.accent, "Reminder settings",
                         if (!st.notificationsEnabled) "All notifications off" else "Categories, timing, quiet hours") { nav.navigate(Routes.NOTIFICATION_PREFS) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Row2(Icons.Filled.Notifications, Color(0xFFF97316), "Notification center", "History of reminders and alerts") { nav.navigate(Routes.NOTIFICATIONS) }
+                    Row2(Icons.Filled.Notifications, fin.accent, "Notification center", "History of reminders and alerts") { nav.navigate(Routes.NOTIFICATIONS) }
                 }
             }
             item { SectionHeader("Security") }
@@ -160,11 +184,11 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             item { SectionHeader("Data") }
             item {
                 AppCard(contentPadding = 0.dp) {
-                    Row2(Icons.Filled.Category, Color(0xFFF97316), "Custom categories", "Add, edit or archive categories") { nav.navigate(Routes.CATEGORIES) }
+                    Row2(Icons.Filled.Category, fin.accent, "Custom categories", "Add, edit or archive categories") { nav.navigate(Routes.CATEGORIES) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Row2(Icons.Filled.Description, Color(0xFF16A34A), "Backup to file & export", "Encrypted file backup, CSV and PDF") { nav.navigate(Routes.BACKUP) }
+                    Row2(Icons.Filled.Description, fin.savings, "Backup to file & export", "Encrypted file backup, CSV and PDF") { nav.navigate(Routes.BACKUP) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
-                    Row2(Icons.Filled.Info, Color(0xFF0891B2), "App information", "Version ${BuildConfig.VERSION_NAME}") { about = true }
+                    Row2(Icons.Filled.Info, fin.transfer, "App information", "Version ${BuildConfig.VERSION_NAME}") { about = true }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Row2(Icons.Filled.DeleteForever, MaterialTheme.colorScheme.error, "Reset application data", "Erase everything on this device") { erase = true }
                 }
@@ -183,9 +207,9 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
     }
     if (about) AlertDialog(
         onDismissRequest = { about = false },
-        title = { Text("My Money ${BuildConfig.VERSION_NAME}") },
+        title = { Text("FinFox ${BuildConfig.VERSION_NAME}") },
         text = {
-            Text("Personal finance & expense tracker.\n\n• Works fully offline. The network is used only for optional Google Sign-In and your own Google Drive backups.\n• All financial data is stored on this device.\n• Your PIN is stored as a salted hash protected by the Android Keystore.\n• Backups are encrypted on the device (AES-256-GCM, Argon2id key) before upload.\n• My Money never asks for bank passwords, card numbers, CVVs or UPI PINs, and never moves real money.")
+            Text("Personal finance & expense tracker.\n\n• Works fully offline. The network is used only for optional Google Sign-In and your own Google Drive backups.\n• All financial data is stored on this device.\n• Your PIN is stored as a salted hash protected by the Android Keystore.\n• Backups are encrypted on the device (AES-256-GCM, Argon2id key) before upload.\n• FinFox never asks for bank passwords, card numbers, CVVs or UPI PINs, and never moves real money.")
         },
         confirmButton = { TextButton(onClick = { about = false }) { Text("OK") } },
     )

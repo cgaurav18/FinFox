@@ -56,7 +56,7 @@ import com.mymoney.app.ui.components.PrimaryButton
 import com.mymoney.app.ui.components.SecondaryButton
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @Composable
 fun RestoreScreen(nav: NavController, vm: RestoreViewModel = hiltViewModel()) {
@@ -77,7 +77,7 @@ fun RestoreScreen(nav: NavController, vm: RestoreViewModel = hiltViewModel()) {
                 RestoreStep.PREVIEW -> PreviewStep(s, vm::restore) { nav.popBackStack() }
                 RestoreStep.DONE -> {
                     val r = s.report!!
-                    Message(Icons.Filled.CheckCircle, FinanceTheme.colors.income, "Restore complete",
+                    Message(Icons.Filled.CheckCircle, FinFoxTheme.colors.income, "Restore complete",
                         if (r.mode == RestoreMode.REPLACE) "Your data now matches the backup." else "${r.totalInserted} records added, ${r.totalSkipped} duplicates skipped.")
                     AppCard {
                         r.inserted.forEach { (k, v) -> KeyValueRow(k, if (r.mode == RestoreMode.MERGE) "+$v" else "$v") }

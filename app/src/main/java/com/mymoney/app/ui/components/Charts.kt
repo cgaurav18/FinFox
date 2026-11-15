@@ -47,7 +47,7 @@ import androidx.compose.ui.unit.dp
 import com.mymoney.app.core.Money
 import com.mymoney.app.domain.SeriesPoint
 import com.mymoney.app.domain.Slice
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -63,7 +63,8 @@ fun DonutChart(
 ) {
     var selected by remember(slices) { mutableStateOf<Int?>(null) }
     val sweep = remember(slices) { Animatable(0f) }
-    LaunchedEffect(slices) { sweep.snapTo(0f); sweep.animateTo(1f, tween(700)) }
+    val reducedsweep = com.mymoney.app.ui.theme.FinFoxTheme.reducedMotion
+    LaunchedEffect(slices) { if (reducedsweep) sweep.snapTo(1f) else { sweep.snapTo(0f); sweep.animateTo(1f, tween(700)) } }
     val total = slices.sumOf { it.valueMinor }.coerceAtLeast(1)
     val track = MaterialTheme.colorScheme.surfaceVariant
     val currency = LocalCurrency.current
@@ -128,11 +129,12 @@ fun DonutChart(
 /** Grouped income/expense bars. Tap a group to see exact values. */
 @Composable
 fun IncomeExpenseBarChart(points: List<SeriesPoint>, modifier: Modifier = Modifier) {
-    val fin = FinanceTheme.colors
+    val fin = FinFoxTheme.colors
     val currency = LocalCurrency.current
     var selected by remember(points) { mutableStateOf<Int?>(points.indexOfLast { it.incomeMinor != 0L || it.expenseMinor != 0L }.takeIf { it >= 0 }) }
     val grow = remember(points) { Animatable(0f) }
-    LaunchedEffect(points) { grow.snapTo(0f); grow.animateTo(1f, tween(600)) }
+    val reducedgrow = com.mymoney.app.ui.theme.FinFoxTheme.reducedMotion
+    LaunchedEffect(points) { if (reducedgrow) grow.snapTo(1f) else { grow.snapTo(0f); grow.animateTo(1f, tween(600)) } }
     val max = (points.maxOfOrNull { maxOf(it.incomeMinor, it.expenseMinor) } ?: 0L).coerceAtLeast(1)
     val grid = MaterialTheme.colorScheme.outlineVariant
     val highlight = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
@@ -192,7 +194,8 @@ fun LineChart(values: List<Long>, labels: List<String>, title: String, modifier:
     val currency = LocalCurrency.current
     var selected by remember(values) { mutableStateOf(values.lastIndex.takeIf { it >= 0 }) }
     val draw = remember(values) { Animatable(0f) }
-    LaunchedEffect(values) { draw.snapTo(0f); draw.animateTo(1f, tween(700)) }
+    val reduceddraw = com.mymoney.app.ui.theme.FinFoxTheme.reducedMotion
+    LaunchedEffect(values) { if (reduceddraw) draw.snapTo(1f) else { draw.snapTo(0f); draw.animateTo(1f, tween(700)) } }
     val grid = MaterialTheme.colorScheme.outlineVariant
     val zeroColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f)
     Column(modifier.fillMaxWidth()) {

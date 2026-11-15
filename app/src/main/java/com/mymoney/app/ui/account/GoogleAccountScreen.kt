@@ -44,7 +44,7 @@ import com.mymoney.app.ui.components.PrimaryButton
 import com.mymoney.app.ui.components.SecondaryButton
 import com.mymoney.app.ui.components.SectionHeader
 import com.mymoney.app.ui.navigation.Routes
-import com.mymoney.app.ui.theme.FinanceTheme
+import com.mymoney.app.ui.theme.FinFoxTheme
 
 @Composable
 fun GoogleAccountScreen(nav: NavController, vm: AccountViewModel = hiltViewModel()) {
@@ -66,10 +66,10 @@ fun GoogleAccountScreen(nav: NavController, vm: AccountViewModel = hiltViewModel
                         Text(p.displayName ?: "Google user", style = MaterialTheme.typography.titleLarge)
                         Text(p.email ?: "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Spacer(Modifier.height(8.dp))
-                        Chip("Connected", FinanceTheme.colors.income)
+                        Chip("Connected", FinFoxTheme.colors.income)
                     } else {
                         Text("Not signed in", style = MaterialTheme.typography.titleLarge)
-                        Text("You're using My Money offline. Sign in to back up to your own Google Drive.", textAlign = TextAlign.Center,
+                        Text("You're using FinFox offline. Sign in to back up to your own Google Drive.", textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }
@@ -100,7 +100,7 @@ fun GoogleAccountScreen(nav: NavController, vm: AccountViewModel = hiltViewModel
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Spacer(Modifier.width(4.dp))
-                    Text("Signing in only shares your name, email and photo with My Money. Google Drive access is requested separately, only if you turn on cloud backup.",
+                    Text("Signing in only shares your name, email and photo with FinFox. Google Drive access is requested separately, only if you turn on cloud backup.",
                         style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
@@ -112,7 +112,7 @@ fun GoogleAccountScreen(nav: NavController, vm: AccountViewModel = hiltViewModel
         "Sign out", onConfirm = vm::signOut, onDismiss = { confirmSignOut = false },
     )
     if (confirmRevoke) ConfirmDialog(
-        "Revoke access?", "My Money's permission to your Google Drive app folder will be revoked and you'll be signed out. Data on this device and backups already in Drive are kept.",
+        "Revoke access?", "FinFox's permission to your Google Drive app folder will be revoked and you'll be signed out. Data on this device and backups already in Drive are kept.",
         "Revoke", onConfirm = vm::revokeAccess, onDismiss = { confirmRevoke = false },
     )
 }

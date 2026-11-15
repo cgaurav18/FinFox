@@ -92,7 +92,7 @@ fun CategoriesScreen(nav: NavController, vm: CategoriesViewModel = hiltViewModel
 private fun CategoryDialog(existing: CategoryEntity?, onDismiss: () -> Unit, onSave: (String, String, Long) -> Unit) {
     var name by remember { mutableStateOf(existing?.name ?: "") }
     var icon by remember { mutableStateOf(existing?.iconKey ?: "other") }
-    var color by remember { mutableStateOf(existing?.colorArgb ?: 0xFF7C3AED) }
+    var color by remember { mutableStateOf(existing?.colorArgb ?: com.mymoney.app.ui.components.AppIcons.DEFAULT_COLOR) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (existing == null) "New category" else "Edit category") },

@@ -65,7 +65,15 @@ import java.time.LocalTime
 import java.time.YearMonth
 import java.time.ZoneOffset
 
-private val fieldShape = RoundedCornerShape(14.dp)
+private val fieldShape = com.mymoney.app.ui.theme.FinFoxShapes.input
+
+/** FinFox input colours: surface fill, purple focus indicator/label/cursor, red errors. */
+@Composable
+private fun finFoxFieldColors() = OutlinedTextFieldDefaults.colors(
+    unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface,
+    focusedBorderColor = MaterialTheme.colorScheme.primary, focusedLabelColor = MaterialTheme.colorScheme.primary,
+    cursorColor = MaterialTheme.colorScheme.primary, unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+)
 
 @Composable
 fun AppTextField(
@@ -97,7 +105,7 @@ fun AppTextField(
         leadingIcon = leadingIcon?.let { { Icon(it, null) } },
         trailingIcon = trailing,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = if (singleLine) ImeAction.Next else ImeAction.Default, capitalization = capitalization),
-        colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface),
+        colors = finFoxFieldColors(),
     )
 }
 
@@ -126,7 +134,7 @@ fun AmountField(
         shape = fieldShape,
         textStyle = MaterialTheme.typography.titleMedium,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-        colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface),
+        colors = finFoxFieldColors(),
     )
 }
 
@@ -141,7 +149,7 @@ fun PickerField(label: String, value: String, icon: ImageVector, onClick: () -> 
                 else Icon(icon, null)
             },
             isError = error != null, supportingText = error?.let { { Text(it) } }, shape = fieldShape, singleLine = true,
-            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface),
+            colors = finFoxFieldColors(),
         )
         // Transparent overlay captures taps (readOnly fields otherwise just focus).
         Box(Modifier.matchParentSize().padding(end = if (onClear != null && value.isNotEmpty()) 52.dp else 0.dp).clip(fieldShape).clickable(onClick = onClick))
@@ -229,7 +237,7 @@ fun <T> DropdownField(
             shape = fieldShape,
             singleLine = true,
             modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryNotEditable),
-            colors = OutlinedTextFieldDefaults.colors(unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface),
+            colors = finFoxFieldColors(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             if (options.isEmpty()) DropdownMenuItem(text = { Text("Nothing to choose yet") }, onClick = { expanded = false }, enabled = false)
