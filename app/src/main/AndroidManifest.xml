@@ -8,6 +8,18 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Auto-capture (optional, asked for only when the user turns it on): bank SMS are parsed on the device
+         to record payments. Message text never leaves the phone. -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+
+    <!-- Scan & Pay hands the payment to an installed UPI app (Android 11+ package visibility). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" android:host="pay" />
+        </intent>
+    </queries>
 
     <application
         android:name=".MyMoneyApp"
@@ -121,6 +133,27 @@
         <receiver
             android:name=".notifications.NotificationActionReceiver"
             android:exported="false" />
+
+        <!-- Auto-capture: live bank SMS. Only the system (BROADCAST_SMS) can send to it. -->
+        <receiver
+            android:name=".autocapture.SmsCaptureReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Auto-capture: payment notifications from UPI and bank apps. The user enables it in system settings. -->
+        <service
+            android:name=".autocapture.PaymentNotificationListener"
+            android:exported="true"
+            android:label="@string/capture_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <!-- WorkManager is initialised by MyMoneyApp (HiltWorkerFactory). -->
         <provider

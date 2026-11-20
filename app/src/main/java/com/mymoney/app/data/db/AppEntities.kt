@@ -70,7 +70,7 @@ data class BackupPreferencesEntity(
 )
 
 enum class NotificationCategory(val label: String) {
-    PAYMENT("Payments"), LOAN("Lending & borrowing"), BUDGET("Budgets"), GOAL("Savings goals"), BACKUP("Backup")
+    PAYMENT("Payments"), LOAN("Lending & borrowing"), BUDGET("Budgets"), GOAL("Savings goals"), BACKUP("Backup"), CAPTURE("Auto-captured payments")
 }
 
 /** In-app notification center history (local only, never backed up). */

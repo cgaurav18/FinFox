@@ -109,6 +109,8 @@ import com.mymoney.app.ui.notifications.NotificationCenterScreen
 import com.mymoney.app.ui.notifications.NotificationPreferencesScreen
 import com.mymoney.app.ui.widgets.WidgetGalleryScreen
 import com.mymoney.app.ui.transactions.AddTransactionScreen
+import com.mymoney.app.ui.pay.PayScreen
+import com.mymoney.app.ui.autocapture.AutoCaptureScreen
 import com.mymoney.app.ui.transactions.TransactionDetailScreen
 import com.mymoney.app.ui.transactions.TransactionsScreen
 
@@ -272,5 +274,7 @@ private fun AppNavHost(nav: NavHostController) {
         composable(Routes.WIDGETS) { WidgetGalleryScreen(nav) }
         composable(Routes.NOTIFICATIONS) { NotificationCenterScreen(nav) }
         composable(Routes.NOTIFICATION_PREFS) { NotificationPreferencesScreen(nav) }
+        composable(Routes.PAY, arguments = listOf(navArgument("scan") { type = NavType.BoolType; defaultValue = true })) { PayScreen(nav) }
+        composable(Routes.AUTO_CAPTURE) { AutoCaptureScreen(nav) }
     }
 }

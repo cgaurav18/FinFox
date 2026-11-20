@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.PieChart
@@ -34,6 +36,8 @@ private data class MoreItem(val title: String, val subtitle: String, val icon: I
 fun MoreScreen(nav: NavController) {
     val fin = FinFoxTheme.colors
     val items = listOf(
+        MoreItem("Scan & Pay", "Pay any UPI QR and record it automatically", Icons.Filled.QrCodeScanner, fin.income, Routes.pay(scan = true)),
+        MoreItem("Auto-capture payments", "Record payments from bank SMS & UPI apps", Icons.Filled.AutoAwesome, MaterialTheme.colorScheme.primary, Routes.AUTO_CAPTURE),
         MoreItem("Accounts", "Bank accounts, credit cards & cash", Icons.Filled.AccountBalance, MaterialTheme.colorScheme.primary, Routes.ACCOUNTS),
         MoreItem("Scheduled Payments", "EMI, SIP, bills & subscriptions", Icons.Filled.EventRepeat, fin.warning, Routes.SCHEDULES),
         MoreItem("Money with People", "Money you lent or borrowed", Icons.Filled.Groups, fin.transfer, Routes.PEOPLE),

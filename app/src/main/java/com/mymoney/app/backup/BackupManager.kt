@@ -197,7 +197,11 @@ class BackupManager @Inject constructor(
 
     /** Wipes every table and re-seeds defaults. */
     suspend fun resetAll() {
-        db.withTransaction { clearInTransaction() }
+        db.withTransaction {
+            clearInTransaction()
+            // Captured SMS / notification text is personal data too ("delete everything" must include it).
+            db.captureDao().clearAllCaptured(); db.captureDao().clearPayments()
+        }
         DefaultData.ensureSeeded(db)
         safetyFile.delete()
     }

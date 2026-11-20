@@ -24,6 +24,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallMade
 import androidx.compose.material.icons.automirrored.filled.CallReceived
 import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.AlternateEmail
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.AddCard
 import androidx.compose.material.icons.filled.ArrowDownward
@@ -94,6 +97,8 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
     val profile by vm.profile.collectAsStateWithLifecycle()
     val unreadVm: com.mymoney.app.ui.notifications.UnreadCountViewModel = hiltViewModel()
     val unread by unreadVm.unread.collectAsStateWithLifecycle()
+    val captureVm: com.mymoney.app.ui.autocapture.CaptureBadgeViewModel = hiltViewModel()
+    val capturePending by captureVm.pending.collectAsStateWithLifecycle()
     if (s.loading) { LoadingState(); return }
     val fin = FinFoxTheme.colors
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background), contentAlignment = Alignment.TopCenter) {
@@ -116,6 +121,19 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
             }
         }
         item { BalanceCard(s, hidden, vm::toggleHidden) { nav.navigate(Routes.ACCOUNTS) } }
+        item { ScanPayCard(nav) }
+        if (capturePending > 0) item {
+            AppCard(onClick = { nav.navigate(Routes.AUTO_CAPTURE) }) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Filled.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(10.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("$capturePending captured ${if (capturePending == 1) "payment needs" else "payments need"} review", style = MaterialTheme.typography.titleSmall)
+                        Text("Confirm the account and category to add them.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
+        }
         item { QuickActions(nav) }
         if (s.accountCount == 0) item {
             AppCard { EmptyState(Icons.Filled.AccountBalance, "Add your first account", "Add a bank account, credit card or cash wallet to start tracking.", action = "Add account") { nav.navigate(Routes.accountEdit()) } }
@@ -256,6 +274,22 @@ private fun BalancePart(label: String, value: String, icon: ImageVector, modifie
             Text(label, color = onG.copy(alpha = 0.8f), style = MaterialTheme.typography.labelSmall)
         }
         Text(value, color = onG, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+}
+
+/** Scan a UPI QR (or pay a UPI ID) and let FinFox record the payment. */
+@Composable
+private fun ScanPayCard(nav: NavController) {
+    AppCard(contentPadding = 12.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            com.mymoney.app.ui.components.PrimaryButton(
+                "Scan & Pay", onClick = { nav.navigate(Routes.pay(scan = true)) }, modifier = Modifier.weight(1f), icon = Icons.Filled.QrCodeScanner,
+            )
+            Spacer(Modifier.width(8.dp))
+            com.mymoney.app.ui.components.TonalButton(
+                "UPI ID", onClick = { nav.navigate(Routes.pay(scan = false)) }, modifier = Modifier.weight(0.6f), icon = Icons.Filled.AlternateEmail,
+            )
+        }
     }
 }
 

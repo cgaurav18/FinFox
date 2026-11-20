@@ -4,6 +4,8 @@
     <string name="channel_budget">Budget alerts</string>
     <string name="channel_goals">Savings goals</string>
     <string name="channel_backup">Backup &amp; restore</string>
+    <string name="channel_capture">Auto-captured payments</string>
+    <string name="capture_listener_label">FinFox payment capture</string>
     <string name="widget_desc_total_balance">Total available balance with bank and cash split</string>
     <string name="widget_desc_income_expense">This month\'s income, expenses and net savings</string>
     <string name="widget_desc_quick_actions">Add expense, income, transfer or lending entry</string>

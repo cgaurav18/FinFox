@@ -1,0 +1,106 @@
+package com.mymoney.app.autocapture
+
+import java.math.BigDecimal
+import java.net.URLDecoder
+import java.net.URLEncoder
+
+/**
+ * A UPI payment link as printed in QR codes (NPCI "upi://pay?pa=…&pn=…&am=…").
+ *
+ * Merchant QR codes can carry a signature over their parameters, so [toPayUri] keeps the scanned
+ * parameters exactly as they were and only appends the amount (and currency) when the QR left
+ * them open.
+ */
+data class UpiUri(
+    /** Payee VPA (UPI ID). */
+    val pa: String,
+    /** Payee name. */
+    val pn: String? = null,
+    /** Fixed amount in minor units, when the QR specifies one. */
+    val amountMinor: Long? = null,
+    /** Transaction note. */
+    val tn: String? = null,
+    /** Merchant category code: present means a merchant QR. */
+    val mc: String? = null,
+    /** All parameters in their original order, raw (still URL-encoded). */
+    val rawParams: List<Pair<String, String>> = emptyList(),
+) {
+    val isMerchant: Boolean get() = !mc.isNullOrBlank() && mc != "0000"
+    val displayName: String get() = pn?.takeIf { it.isNotBlank() } ?: pa
+
+    /** The URI handed to the UPI app. [amountMinor] is used only when the QR didn't fix an amount. */
+    fun toPayUri(amountMinor: Long, note: String?, txnRef: String): String {
+        val params = rawParams.ifEmpty { listOfNotNull("pa" to enc(pa).replace("%40", "@"), pn?.let { "pn" to enc(it) }) }.toMutableList()
+        val keys = params.map { it.first.lowercase() }.toSet()
+        if ("am" !in keys) params += "am" to formatAmount(amountMinor)
+        if ("cu" !in keys) params += "cu" to "INR"
+        // A signed QR must not be altered beyond the open fields; notes and refs go only on plain links.
+        if ("sign" !in keys) {
+            if ("tn" !in keys && !note.isNullOrBlank()) params += "tn" to enc(note.take(50))
+            if ("tr" !in keys && !isMerchant) params += "tr" to enc(txnRef)
+        }
+        return "upi://pay?" + params.joinToString("&") { "${it.first}=${it.second}" }
+    }
+
+    companion object {
+        private val vpaRegex = Regex("""^[a-zA-Z0-9][a-zA-Z0-9._-]{1,255}@[a-zA-Z][a-zA-Z0-9]{1,63}$""")
+
+        fun isValidVpa(vpa: String) = vpaRegex.matches(vpa.trim())
+
+        /** Parses a scanned QR payload. Returns null for anything that isn't a UPI pay link. */
+        fun parse(payload: String): UpiUri? {
+            val s = payload.trim()
+            val schemeEnd = s.indexOf("://")
+            if (schemeEnd < 0) return null
+            val scheme = s.substring(0, schemeEnd).lowercase()
+            if (scheme != "upi") return null
+            val q = s.indexOf('?')
+            if (q < 0) return null
+            val raw = s.substring(q + 1).split('&').filter { it.isNotBlank() }.map {
+                val i = it.indexOf('=')
+                if (i < 0) it to "" else it.substring(0, i) to it.substring(i + 1)
+            }
+            fun get(k: String) = raw.firstOrNull { it.first.equals(k, ignoreCase = true) }?.second?.let(::dec)?.trim()?.takeIf { it.isNotEmpty() }
+            val pa = get("pa") ?: return null
+            if (!isValidVpa(pa)) return null
+            return UpiUri(
+                pa = pa, pn = get("pn"), amountMinor = get("am")?.let(::parseAmount), tn = get("tn"), mc = get("mc"),
+                rawParams = raw,
+            )
+        }
+
+        fun manual(vpa: String, name: String?): UpiUri = UpiUri(pa = vpa.trim(), pn = name?.trim()?.takeIf { it.isNotEmpty() })
+
+        fun formatAmount(minor: Long): String = BigDecimal.valueOf(minor, 2).toPlainString()
+
+        private fun parseAmount(s: String): Long? =
+            runCatching { BigDecimal(s).movePointRight(2).longValueExact() }.getOrNull()?.takeIf { it > 0 }
+
+        private fun dec(s: String): String = runCatching { URLDecoder.decode(s.replace("+", "%2B"), "UTF-8") }.getOrDefault(s)
+        private fun enc(s: String): String = URLEncoder.encode(s, "UTF-8").replace("+", "%20")
+    }
+}
+
+/** Outcome reported back by the UPI app (NPCI intent spec: "Status=SUCCESS&txnRef=…&ApprovalRefNo=…"). */
+enum class UpiResultStatus { SUCCESS, SUBMITTED, FAILURE, UNKNOWN }
+
+data class UpiResult(val status: UpiResultStatus, val approvalRef: String? = null, val txnId: String? = null)
+
+object UpiResponse {
+    /** Parses the "response" extra; apps vary in key case and separators. */
+    fun parse(response: String?, extras: Map<String, String?> = emptyMap()): UpiResult {
+        val map = mutableMapOf<String, String>()
+        response?.split('&', ';')?.forEach { part ->
+            val i = part.indexOf('=')
+            if (i > 0) map[part.substring(0, i).trim().lowercase()] = part.substring(i + 1).trim()
+        }
+        extras.forEach { (k, v) -> if (v != null && k.lowercase() !in map) map[k.lowercase()] = v }
+        val status = when (map["status"]?.uppercase()) {
+            "SUCCESS", "SUCCESSFUL", "S" -> UpiResultStatus.SUCCESS
+            "SUBMITTED", "PENDING" -> UpiResultStatus.SUBMITTED
+            "FAILURE", "FAILED", "F", "FAIL" -> UpiResultStatus.FAILURE
+            else -> if (map["responsecode"] == "00" && map["txnid"] != null) UpiResultStatus.SUCCESS else UpiResultStatus.UNKNOWN
+        }
+        return UpiResult(status, map["approvalrefno"]?.takeIf { it.isNotBlank() } ?: map["approvalref"], map["txnid"])
+    }
+}

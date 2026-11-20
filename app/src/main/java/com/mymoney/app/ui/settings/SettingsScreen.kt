@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.CurrencyRupee
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.DeleteForever
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -150,6 +151,12 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                         if (!st.notificationsEnabled) "All notifications off" else "Categories, timing, quiet hours") { nav.navigate(Routes.NOTIFICATION_PREFS) }
                     HorizontalDivider(Modifier.padding(start = 70.dp), color = MaterialTheme.colorScheme.outlineVariant)
                     Row2(Icons.Filled.Notifications, fin.accent, "Notification center", "History of reminders and alerts") { nav.navigate(Routes.NOTIFICATIONS) }
+                }
+            }
+            item { SectionHeader("Automation") }
+            item {
+                AppCard(contentPadding = 0.dp) {
+                    Row2(Icons.Filled.AutoAwesome, primary, "Auto-capture payments", "Record payments from bank SMS & UPI app notifications") { nav.navigate(Routes.AUTO_CAPTURE) }
                 }
             }
             item { SectionHeader("Security") }

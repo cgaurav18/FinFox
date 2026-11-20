@@ -23,8 +23,8 @@ android {
         applicationId = "com.mymoney.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.2.0"
+        versionCode = 4
+        versionName = "1.3.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -122,6 +122,8 @@ dependencies {
     implementation(libs.retrofit)
     implementation(libs.retrofit.kotlinx.serialization)
     implementation(libs.okhttp)
+    // Scan & Pay: Google code scanner (Play services UI, no camera permission needed)
+    implementation(libs.gms.codescanner)
     // Argon2id for backup recovery passphrases
     implementation(libs.bouncycastle)
     debugImplementation(libs.compose.ui.tooling)

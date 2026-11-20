@@ -20,4 +20,6 @@ interface Notifier {
     suspend fun repaymentRecorded(loanId: Long, person: String, amountMinor: Long, outstandingMinor: Long, gave: Boolean, currency: String) {}
     suspend fun goalAlert(goalId: Long, name: String, alert: GoalAlert, savedMinor: Long, targetMinor: Long, targetDate: LocalDate?, currency: String) {}
     suspend fun backupEvent(event: BackupEvent, detail: String?) {}
+    /** A payment was read from a bank SMS / app notification. [transactionId] null means it is waiting for review. */
+    suspend fun paymentCaptured(captureId: Long, transactionId: Long?, debit: Boolean, amountMinor: Long, counterparty: String?, categoryName: String?, currency: String) {}
 }
