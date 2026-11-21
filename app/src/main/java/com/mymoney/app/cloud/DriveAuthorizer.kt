@@ -22,7 +22,33 @@ sealed interface DriveAuthResult {
     data class NeedsUser(val pendingIntent: PendingIntent) : DriveAuthResult
 }
 
-class DriveAuthException(message: String) : Exception(message)
+/**
+ * [setupProblem]: Google rejected this build itself (DEVELOPER_ERROR): no OAuth client in Google Cloud matches the
+ * app's package name and signing-certificate SHA-1, or the Drive API / consent screen isn't set up. Retrying can't fix it.
+ */
+class DriveAuthException(message: String, val setupProblem: Boolean = false) : Exception(message)
+
+/** Turns Google Play services error codes into something a person can act on. */
+internal fun driveAuthError(e: ApiException): DriveAuthException = when (e.statusCode) {
+    com.google.android.gms.common.api.CommonStatusCodes.DEVELOPER_ERROR -> DriveAuthException(
+        "Google blocked this FinFox build: it isn't registered for Google Drive yet (package name and signing SHA-1).", setupProblem = true,
+    )
+    com.google.android.gms.common.api.CommonStatusCodes.NETWORK_ERROR -> DriveAuthException("No internet connection. Connect and try again.")
+    com.google.android.gms.common.api.CommonStatusCodes.CANCELED, 12501 -> DriveAuthException("Google Drive wasn't connected")
+    com.google.android.gms.common.api.CommonStatusCodes.SIGN_IN_REQUIRED -> DriveAuthException("Add a Google account to this phone first (Settings → Passwords & accounts).")
+    else -> DriveAuthException("Google Drive authorization failed (code ${e.statusCode}). Try again in a moment.")
+}
+
+/** SHA-1 of this app's signing certificate, as Google Cloud Console shows it (AA:BB:…). */
+fun signingSha1(context: Context): String? = runCatching {
+    val pm = context.packageManager
+    val sig = if (android.os.Build.VERSION.SDK_INT >= 28) {
+        pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES).signingInfo?.apkContentsSigners?.firstOrNull()
+    } else {
+        @Suppress("DEPRECATION") pm.getPackageInfo(context.packageName, android.content.pm.PackageManager.GET_SIGNATURES).signatures?.firstOrNull()
+    } ?: return null
+    java.security.MessageDigest.getInstance("SHA-1").digest(sig.toByteArray()).joinToString(":") { "%02X".format(it) }
+}.getOrNull()
 
 /**
  * Google Drive authorization (no app sign-in is involved). Only the app-private `drive.appdata` scope plus
@@ -50,9 +76,7 @@ class PlayServicesDriveAuthorizer @Inject constructor(@ApplicationContext privat
         val request = AuthorizationRequest.builder().setRequestedScopes(scopes)
             .apply { if (!email.isNullOrBlank()) setAccount(Account(email, "com.google")) }
             .build()
-        val result = try { client.authorize(request).awaitResult() } catch (e: ApiException) {
-            throw DriveAuthException("Google Drive authorization failed (${e.statusCode}). Check your connection and try again.")
-        }
+        val result = try { client.authorize(request).awaitResult() } catch (e: ApiException) { throw driveAuthError(e) }
         if (result.hasResolution()) {
             return DriveAuthResult.NeedsUser(result.pendingIntent ?: throw DriveAuthException("Google Drive needs your permission"))
         }
@@ -62,9 +86,7 @@ class PlayServicesDriveAuthorizer @Inject constructor(@ApplicationContext privat
 
     override fun tokenFromConsentResult(data: Intent?): DriveAuthResult.Granted {
         if (data == null) throw DriveAuthException("Google Drive permission was not granted")
-        val result = try { client.getAuthorizationResultFromIntent(data) } catch (e: ApiException) {
-            throw DriveAuthException("Google Drive permission was not granted")
-        }
+        val result = try { client.getAuthorizationResultFromIntent(data) } catch (e: ApiException) { throw driveAuthError(e) }
         if (DRIVE_APPDATA_SCOPE !in result.grantedScopes) throw DriveAuthException("Google Drive permission was not granted")
         return DriveAuthResult.Granted(result.accessToken ?: throw DriveAuthException("Google didn't return an access token"), result.toGoogleSignInAccount()?.email)
     }

@@ -142,7 +142,37 @@ class WidgetTest {
         setContext(ctx)
         setAppWidgetSize(WidgetSizes.SMALL)
         provideComposable { WidgetTheme { QuickActionsContent() } }
-        listOf("Add expense", "Add income", "Transfer money", "Add lending or borrowing entry").forEach { onNode(hasContentDescription(it)).assertExists() }
+        listOf("Add expense", "Add income", "Transfer money", "Scan a UPI QR and pay").forEach { onNode(hasContentDescription(it)).assertExists() }
+    }
+
+    @Test fun quickActionsWideAlsoOffersLending() = runGlanceAppWidgetUnitTest {
+        setContext(ctx)
+        setAppWidgetSize(WidgetSizes.MEDIUM)
+        provideComposable { WidgetTheme { QuickActionsContent() } }
+        listOf("Scan a UPI QR and pay", "Add lending or borrowing entry").forEach { onNode(hasContentDescription(it)).assertExists() }
+    }
+
+    @Test fun scanPayWidgetSmallAndWide() = runGlanceAppWidgetUnitTest {
+        setContext(ctx)
+        setAppWidgetSize(WidgetSizes.MEDIUM)
+        provideComposable { WidgetTheme { ScanPayContent() } }
+        listOf("Scan a UPI QR and pay", "Pay a UPI ID", "Show my UPI QR").forEach { onNode(hasContentDescription(it)).assertExists() }
+    }
+
+    @Test fun receiveQrWidgetShowsQrOrPrivacyNotice() = runGlanceAppWidgetUnitTest {
+        setContext(ctx)
+        setAppWidgetSize(WidgetSizes.LARGE)
+        provideComposable { WidgetTheme { ReceiveQrContent(UpiQrModel("Gaurav", "gaurav@okaxis", "upi://pay?pa=gaurav@okaxis&pn=Gaurav&cu=INR", hidden = false)) } }
+        onNode(hasContentDescription("UPI QR code for gaurav@okaxis")).assertExists()
+        onNode(hasText("gaurav@okaxis")).assertExists()
+    }
+
+    @Test fun receiveQrWidgetHiddenInPrivacyMode() = runGlanceAppWidgetUnitTest {
+        setContext(ctx)
+        setAppWidgetSize(WidgetSizes.LARGE)
+        provideComposable { WidgetTheme { ReceiveQrContent(UpiQrModel("Gaurav", "gaurav@okaxis", "upi://pay?pa=gaurav@okaxis", hidden = true)) } }
+        onNode(hasContentDescription("UPI QR code for gaurav@okaxis")).assertDoesNotExist()
+        onNode(hasText("Hidden by widget privacy mode")).assertExists()
     }
 
     @Test fun upcomingAndPeopleAndCardsRender() = runGlanceAppWidgetUnitTest {

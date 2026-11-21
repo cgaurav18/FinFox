@@ -28,7 +28,14 @@ data class ReceiveState(
 }
 
 @HiltViewModel
-class ReceiveViewModel @Inject constructor(private val repo: MyUpiRepository, bus: MessageBus) : BaseViewModel(bus) {
+class ReceiveViewModel @Inject constructor(
+    private val repo: MyUpiRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+    bus: MessageBus,
+) : BaseViewModel(bus) {
+    /** The "My UPI QR" widget shows the default ID: refresh it after any change. */
+    private suspend fun refreshWidgets() = com.mymoney.app.widgets.WidgetUpdater.updateAll(context)
+
     private val pick = MutableStateFlow<String?>(null)
     val amount = MutableStateFlow("")
     val note = MutableStateFlow("")
@@ -38,7 +45,7 @@ class ReceiveViewModel @Inject constructor(private val repo: MyUpiRepository, bu
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReceiveState())
 
     fun select(vpa: String) { pick.value = vpa }
-    fun add(vpa: String, name: String, label: String, onDone: () -> Unit) = launchSafe("UPI ID saved") { repo.add(vpa, name, label); pick.value = vpa.trim().lowercase(); onDone() }
-    fun remove(vpa: String) = launchSafe("UPI ID removed") { repo.remove(vpa); if (pick.value == vpa) pick.value = null }
-    fun makeDefault(vpa: String) = launchSafe("Default UPI ID updated") { repo.makeDefault(vpa) }
+    fun add(vpa: String, name: String, label: String, onDone: () -> Unit) = launchSafe("UPI ID saved") { repo.add(vpa, name, label); pick.value = vpa.trim().lowercase(); onDone(); refreshWidgets() }
+    fun remove(vpa: String) = launchSafe("UPI ID removed") { repo.remove(vpa); if (pick.value == vpa) pick.value = null; refreshWidgets() }
+    fun makeDefault(vpa: String) = launchSafe("Default UPI ID updated") { repo.makeDefault(vpa); refreshWidgets() }
 }

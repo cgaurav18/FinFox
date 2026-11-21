@@ -18,6 +18,7 @@ import androidx.glance.appwidget.cornerRadius
 import androidx.glance.appwidget.provideContent
 import androidx.glance.background
 import androidx.glance.ImageProvider
+import androidx.glance.layout.size
 import androidx.glance.layout.Alignment
 import androidx.glance.layout.Box
 import androidx.glance.layout.Column
@@ -162,6 +163,7 @@ fun QuickActionsContent() {
         QuickAction("Expense", R.drawable.ic_w_expense, "txn-edit?id=-1&type=${TxnType.EXPENSE.name}", WidgetColors.expense, "Add expense"),
         QuickAction("Income", R.drawable.ic_w_income, "txn-edit?id=-1&type=${TxnType.INCOME.name}", WidgetColors.income, "Add income"),
         QuickAction("Transfer", R.drawable.ic_w_transfer, "txn-edit?id=-1&type=${TxnType.TRANSFER.name}", WidgetColors.transfer, "Transfer money"),
+        QuickAction("Pay", R.drawable.ic_shortcut_scan, "pay?scan=true", WidgetColors.brand, "Scan a UPI QR and pay"),
         QuickAction("Lending", R.drawable.ic_w_people, "loan-edit?id=-1&direction=${LoanDirection.GAVE.name}", WidgetColors.highlight, "Add lending or borrowing entry"),
     )
     WidgetContainer(null, padding = 8) {
@@ -182,7 +184,7 @@ fun QuickActionsContent() {
             VSpace(6)
             Row(GlanceModifier.fillMaxWidth().defaultWeight()) {
                 ActionButton(actions[2], GlanceModifier.defaultWeight().fillMaxHeight()); Spacer(GlanceModifier.width(6.dp))
-                ActionButton(actions[3], GlanceModifier.defaultWeight().fillMaxHeight())
+                ActionButton(actions[3], GlanceModifier.defaultWeight().fillMaxHeight())  // Pay (Scan & Pay)
             }
         }
     }
@@ -378,6 +380,94 @@ fun CreditCardContent(m: CardModel) {
 
 // ---------------------------------------------------------------- Receivers
 
+// ---------------------------------------------------------------- 8. Scan & Pay (small, medium)
+
+class ScanPayWidget : GlanceAppWidget() {
+    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.MEDIUM))
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent { WidgetTheme { ScanPayContent() } }
+    }
+}
+
+/** One big "Scan & Pay" button; the wide size adds "Pay UPI ID" and "Receive". */
+@Composable
+fun ScanPayContent() {
+    WidgetContainer(null, padding = 8) {
+        if (isWide) {
+            Row(GlanceModifier.fillMaxSize()) {
+                BigAction("Scan & Pay", R.drawable.ic_shortcut_scan, "pay?scan=true", "Scan a UPI QR and pay", GlanceModifier.defaultWeight().fillMaxHeight())
+                Spacer(GlanceModifier.width(6.dp))
+                BigAction("Pay UPI ID", R.drawable.ic_w_transfer, "pay?scan=false", "Pay a UPI ID", GlanceModifier.defaultWeight().fillMaxHeight())
+                Spacer(GlanceModifier.width(6.dp))
+                BigAction("Receive", R.drawable.ic_shortcut_receive, "receive", "Show my UPI QR", GlanceModifier.defaultWeight().fillMaxHeight())
+            }
+        } else {
+            BigAction("Scan & Pay", R.drawable.ic_shortcut_scan, "pay?scan=true", "Scan a UPI QR and pay", GlanceModifier.fillMaxSize())
+        }
+    }
+}
+
+@Composable
+private fun BigAction(label: String, icon: Int, route: String, description: String, modifier: GlanceModifier) {
+    Column(
+        modifier.background(ImageProvider(R.drawable.widget_tile)).cornerRadius(16.dp).padding(6.dp).clickTo(openAction(route)),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, description, WidgetColors.brand, size = 34)
+        VSpace(4)
+        Label(label, size = 12.sp, bold = true, color = GlanceTheme.colors.onSurface)
+    }
+}
+
+// ---------------------------------------------------------------- 9. My UPI QR (medium, large)
+
+class ReceiveQrWidget : GlanceAppWidget() {
+    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.LARGE))
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        val m = widgetRepo(context).upiQr()
+        provideContent { WidgetTheme { ReceiveQrContent(m) } }
+    }
+}
+
+/** The default UPI ID as a scannable QR (black on white). Hidden in widget privacy mode; tap opens Receive money. */
+@Composable
+fun ReceiveQrContent(m: UpiQrModel?) {
+    WidgetContainer(openAction("receive"), padding = 10) {
+        when {
+            m == null -> {
+                WidgetHeader("My UPI QR")
+                VSpace(6)
+                EmptyLine("Tap to save your UPI ID. Its QR shows here so anyone can scan and pay you.")
+            }
+            m.hidden -> {
+                WidgetHeader("My UPI QR", m.vpa)
+                VSpace(6)
+                EmptyLine("Hidden by widget privacy mode. Tap to show it in FinFox.")
+            }
+            else -> Column(GlanceModifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                Label(m.name, size = 13.sp, bold = true, color = GlanceTheme.colors.onSurface)
+                VSpace(4)
+                val side = (minOf(LocalSize.current.width, LocalSize.current.height) - 64.dp).coerceAtLeast(64.dp)
+                androidx.glance.layout.Box(
+                    GlanceModifier.background(androidx.glance.unit.ColorProvider(androidx.compose.ui.graphics.Color.White)).cornerRadius(10.dp).padding(5.dp),
+                ) {
+                    androidx.glance.Image(ImageProvider(qrWidgetBitmap(m.payload)), contentDescription = "UPI QR code for ${m.vpa}", modifier = GlanceModifier.size(side))
+                }
+                VSpace(4)
+                Label(m.vpa, size = 10.sp)
+            }
+        }
+    }
+}
+
+/** QR bitmap for widgets (kept small: widgets travel through a binder with a size limit). */
+private fun qrWidgetBitmap(payload: String): android.graphics.Bitmap {
+    val hints = mapOf(com.google.zxing.EncodeHintType.ERROR_CORRECTION to com.google.zxing.qrcode.decoder.ErrorCorrectionLevel.M, com.google.zxing.EncodeHintType.MARGIN to 1)
+    val m = com.google.zxing.qrcode.QRCodeWriter().encode(payload, com.google.zxing.BarcodeFormat.QR_CODE, 360, 360, hints)
+    val px = IntArray(m.width * m.height) { i -> if (m.get(i % m.width, i / m.width)) 0xFF000000.toInt() else 0xFFFFFFFF.toInt() }
+    return android.graphics.Bitmap.createBitmap(px, m.width, m.height, android.graphics.Bitmap.Config.RGB_565)
+}
+
 class TotalBalanceReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = TotalBalanceWidget() }
 class IncomeExpenseReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = IncomeExpenseWidget() }
 class QuickActionsReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = QuickActionsWidget() }
@@ -385,3 +475,5 @@ class UpcomingPaymentsReceiver : GlanceAppWidgetReceiver() { override val glance
 class MoneyWithPeopleReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = MoneyWithPeopleWidget() }
 class BudgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = BudgetWidget() }
 class CreditCardReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = CreditCardWidget() }
+class ScanPayReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = ScanPayWidget() }
+class ReceiveQrReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = ReceiveQrWidget() }

@@ -29,7 +29,9 @@ enum class WidgetKind(
 ) {
     TOTAL_BALANCE("Total Balance", "Available balance (bank + cash) with a hide/show toggle. Opens the dashboard.", "Small · Medium", TotalBalanceReceiver::class.java, WidgetSizes.MEDIUM),
     INCOME_EXPENSE("Income & Expenses", "This month's income, expenses, net savings and top spending. Opens Reports.", "Medium · Large", IncomeExpenseReceiver::class.java, WidgetSizes.LARGE),
-    QUICK_ACTIONS("Quick Actions", "Add an expense, income, transfer or lending/borrowing entry in one tap.", "Small · Medium", QuickActionsReceiver::class.java, WidgetSizes.MEDIUM),
+    SCAN_PAY("Scan & Pay", "One tap opens the QR scanner to pay any UPI QR. The wide size adds Pay UPI ID and Receive.", "Small · Medium", ScanPayReceiver::class.java, WidgetSizes.MEDIUM),
+    RECEIVE_QR("My UPI QR", "Your UPI ID as a QR code on the home screen, so anyone can scan and pay you. Hidden in privacy mode.", "Small · Large", ReceiveQrReceiver::class.java, WidgetSizes.LARGE),
+    QUICK_ACTIONS("Quick Actions", "Add an expense, income or transfer, or Scan & Pay, in one tap (wide size adds lending).", "Small · Medium", QuickActionsReceiver::class.java, WidgetSizes.MEDIUM),
     UPCOMING("Upcoming Payments", "EMIs, SIPs, bills and subscriptions with due dates and overdue flags.", "Medium · Large", UpcomingPaymentsReceiver::class.java, WidgetSizes.LARGE),
     PEOPLE("Money with People", "What you'll receive and owe, with upcoming due dates.", "Medium · Large", MoneyWithPeopleReceiver::class.java, WidgetSizes.LARGE),
     BUDGET("Budget Tracker", "Monthly budget, spent, remaining and category progress with overspending warnings.", "Medium · Large", BudgetReceiver::class.java, WidgetSizes.LARGE),
@@ -38,6 +40,7 @@ enum class WidgetKind(
     fun widget(): GlanceAppWidget = when (this) {
         TOTAL_BALANCE -> TotalBalanceWidget(); INCOME_EXPENSE -> IncomeExpenseWidget(); QUICK_ACTIONS -> QuickActionsWidget()
         UPCOMING -> UpcomingPaymentsWidget(); PEOPLE -> MoneyWithPeopleWidget(); BUDGET -> BudgetWidget(); CREDIT_CARDS -> CreditCardWidget()
+        SCAN_PAY -> ScanPayWidget(); RECEIVE_QR -> ReceiveQrWidget()
     }
 
     /** Loads live data and returns the widget's content (shared by real widgets and previews). */
@@ -49,6 +52,8 @@ enum class WidgetKind(
         PEOPLE -> repo.people().let { m -> { PeopleContent(m) } }
         BUDGET -> repo.budget().let { m -> { BudgetContent(m) } }
         CREDIT_CARDS -> repo.cards().let { m -> { CreditCardContent(m) } }
+        SCAN_PAY -> { { ScanPayContent() } }
+        RECEIVE_QR -> repo.upiQr().let { m -> { ReceiveQrContent(m) } }
     }
 
     /** Renders the real Glance layout with live data into RemoteViews for an in-app preview. */
