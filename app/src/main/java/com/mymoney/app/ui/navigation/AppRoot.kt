@@ -276,5 +276,6 @@ private fun AppNavHost(nav: NavHostController) {
         composable(Routes.NOTIFICATION_PREFS) { NotificationPreferencesScreen(nav) }
         composable(Routes.PAY, arguments = listOf(navArgument("scan") { type = NavType.BoolType; defaultValue = true })) { PayScreen(nav) }
         composable(Routes.AUTO_CAPTURE) { AutoCaptureScreen(nav) }
+        composable(Routes.RECEIVE) { com.mymoney.app.ui.receive.ReceiveScreen(nav) }
     }
 }

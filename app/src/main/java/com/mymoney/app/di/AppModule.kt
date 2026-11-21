@@ -53,6 +53,10 @@ object AppModule {
         AppearanceRepository(store, settings)
 
     @Provides @Singleton
+    fun myUpiIds(@Named("appearance") store: DataStore<Preferences>): com.mymoney.app.data.repo.MyUpiRepository =
+        com.mymoney.app.data.repo.MyUpiRepository(store)
+
+    @Provides @Singleton
     fun secretBox(): SecretBox = KeystoreSecretBox()
 
     @Provides @Singleton

@@ -74,4 +74,14 @@ class UpiUriTest {
             "upi://pay?pa=rahul@oksbi&pn=Rahul&mc=0000",
         ).forEach { assertThat(UpiUri.parse(it)!!.isMerchant).isFalse() }
     }
+
+    @Test fun receiveQrPayloadIsAStandardUpiLink() {
+        assertThat(UpiUri.receiveUri("gaurav@okaxis", "Gaurav C")).isEqualTo("upi://pay?pa=gaurav@okaxis&pn=Gaurav%20C&cu=INR")
+        val withAmount = UpiUri.receiveUri("gaurav@okaxis", "Gaurav C", 25_050, "Dinner split")
+        assertThat(withAmount).isEqualTo("upi://pay?pa=gaurav@okaxis&pn=Gaurav%20C&am=250.50&cu=INR&tn=Dinner%20split")
+        // Round-trips through FinFox's own scanner parser.
+        val parsed = UpiUri.parse(withAmount)!!
+        assertThat(parsed.pa).isEqualTo("gaurav@okaxis")
+        assertThat(parsed.amountMinor).isEqualTo(25_050)
+    }
 }

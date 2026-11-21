@@ -96,6 +96,18 @@ data class UpiUri(
             )
         }
 
+        /**
+         * The "Receive money" QR payload for the user's own UPI ID: payer apps open it with the payee filled in,
+         * and with the amount fixed when [amountMinor] is given.
+         */
+        fun receiveUri(vpa: String, name: String, amountMinor: Long? = null, note: String? = null): String {
+            val params = mutableListOf("pa" to enc(vpa.trim()).replace("%40", "@"), "pn" to enc(name.trim()))
+            amountMinor?.takeIf { it > 0 }?.let { params += "am" to formatAmount(it) }
+            params += "cu" to "INR"
+            note?.trim()?.takeIf { it.isNotEmpty() }?.let { params += "tn" to enc(it.take(50)) }
+            return "upi://pay?" + params.joinToString("&") { "${it.first}=${it.second}" }
+        }
+
         fun manual(vpa: String, name: String?): UpiUri = UpiUri(pa = vpa.trim(), pn = name?.trim()?.takeIf { it.isNotEmpty() })
 
         fun formatAmount(minor: Long): String = BigDecimal.valueOf(minor, 2).toPlainString()

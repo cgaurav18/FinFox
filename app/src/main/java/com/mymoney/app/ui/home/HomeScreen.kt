@@ -1,6 +1,10 @@
 package com.mymoney.app.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.material.icons.filled.QrCode2
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -128,6 +132,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
             }
         }
         item { MonthSummary(s, nav) }
+        item { SavingsCard(s, nav) }
         if (s.monthData.slices.isNotEmpty()) item {
             AppCard {
                 Text("Where your money went", style = MaterialTheme.typography.titleSmall)
@@ -176,16 +181,15 @@ private fun Notice(icon: ImageVector, color: Color, title: String, subtitle: Str
     }
 }
 
-/** Income, expenses and what's left this month, with how much of the income has been spent. */
+/** Income and expenses this month in tinted panels, and how much of the income has been spent. */
 @Composable
 private fun MonthSummary(s: HomeState, nav: NavController) {
     val fin = FinFoxTheme.colors
     val d = s.monthData
     AppCard {
-        Row {
-            SummaryPart("Income", d.income, fin.income, Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { nav.navigate(Routes.txns(TxnType.INCOME.name)) })
-            SummaryPart("Expenses", d.expense, fin.expense, Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { nav.navigate(Routes.txns(TxnType.EXPENSE.name)) })
-            SummaryPart("Left", d.net, if (d.net >= 0) MaterialTheme.colorScheme.onSurface else fin.expense, Modifier.weight(1f))
+        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+            SummaryPanel("Income", d.income, Icons.Filled.ArrowDownward, fin.income, Modifier.weight(1f)) { nav.navigate(Routes.txns(TxnType.INCOME.name)) }
+            SummaryPanel("Expenses", d.expense, Icons.Filled.ArrowUpward, fin.expense, Modifier.weight(1f)) { nav.navigate(Routes.txns(TxnType.EXPENSE.name)) }
         }
         if (d.income > 0) {
             Spacer(Modifier.height(14.dp))
@@ -194,7 +198,7 @@ private fun MonthSummary(s: HomeState, nav: NavController) {
             Spacer(Modifier.height(6.dp))
             Text(
                 if (d.expense > d.income) "You spent more than you earned this month"
-                else "${Money.percent(d.expense, d.income)}% of income spent · ${Money.percent(d.net.coerceAtLeast(0), d.income)}% saved",
+                else "${((d.expense * 100) / d.income)}% of this month's income spent",
                 style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
@@ -202,11 +206,121 @@ private fun MonthSummary(s: HomeState, nav: NavController) {
 }
 
 @Composable
-private fun SummaryPart(label: String, amount: Long, color: Color, modifier: Modifier) {
-    Column(modifier.padding(vertical = 2.dp)) {
-        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Spacer(Modifier.height(2.dp))
+private fun SummaryPanel(label: String, amount: Long, icon: ImageVector, color: Color, modifier: Modifier, onClick: () -> Unit) {
+    Column(modifier.clip(RoundedCornerShape(14.dp)).background(color.copy(alpha = 0.08f)).clickable(onClick = onClick).padding(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = color, modifier = Modifier.size(16.dp))
+            Spacer(Modifier.width(4.dp))
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Spacer(Modifier.height(4.dp))
         MoneyText(amount, style = MaterialTheme.typography.titleMedium, color = color)
+    }
+}
+
+/**
+ * Savings at a glance: this month's savings rate as a ring, what was saved this month / this year / on average,
+ * the last six months as up (saved) and down (overspent) bars, and progress on savings goals.
+ */
+@Composable
+private fun SavingsCard(s: HomeState, nav: NavController) {
+    val fin = FinFoxTheme.colors
+    val d = s.monthData
+    val currency = LocalCurrency.current
+    AppCard(onClick = { nav.navigate(Routes.REPORTS) }) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.Savings, null, tint = fin.savings, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Savings", style = MaterialTheme.typography.titleSmall)
+        }
+        Spacer(Modifier.height(12.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            SavingsRing(d.savingsRate, if (d.net < 0) fin.expense else fin.savings)
+            Spacer(Modifier.width(16.dp))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column {
+                    Text(if (d.net >= 0) "Saved this month" else "Overspent this month", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    MoneyText(kotlin.math.abs(d.net), style = MaterialTheme.typography.titleLarge, color = if (d.net >= 0) fin.savings else fin.expense)
+                }
+                Row {
+                    MiniStat("This year", d.ytdSaved, Modifier.weight(1f))
+                    MiniStat("Avg / month", d.avgSaved, Modifier.weight(1f))
+                }
+            }
+        }
+        if (d.sixMonths.any { it.incomeMinor != 0L || it.expenseMinor != 0L }) {
+            Spacer(Modifier.height(16.dp))
+            SavingsBars(d.sixMonths, fin.savings, fin.expense)
+        }
+        Spacer(Modifier.height(12.dp))
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        Spacer(Modifier.height(10.dp))
+        if (s.goals.count > 0) {
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { nav.navigate(Routes.GOALS) }, verticalAlignment = Alignment.CenterVertically) {
+                Text("${s.goals.count} savings ${if (s.goals.count == 1) "goal" else "goals"}", style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+                Text("${Money.format(s.goals.saved, currency)} of ${Money.format(s.goals.target, currency)}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(8.dp))
+            com.mymoney.app.ui.components.ProgressBar(if (s.goals.target > 0) s.goals.saved.toFloat() / s.goals.target else 0f, fin.savings, height = 6.dp)
+        } else {
+            Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { nav.navigate(Routes.goalEdit()) }.padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("Saving for something? Set a goal", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
+}
+
+@Composable
+private fun MiniStat(label: String, amount: Long, modifier: Modifier) {
+    Column(modifier) {
+        Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        MoneyText(amount, style = MaterialTheme.typography.titleSmall, color = if (amount < 0) FinFoxTheme.colors.expense else MaterialTheme.colorScheme.onSurface, signed = amount < 0)
+    }
+}
+
+/** Savings rate ring: the share of income kept this month. */
+@Composable
+private fun SavingsRing(rate: Int?, color: Color) {
+    val track = MaterialTheme.colorScheme.surfaceVariant
+    val target = ((rate ?: 0).coerceIn(0, 100)) / 100f
+    val anim by androidx.compose.animation.core.animateFloatAsState(target, androidx.compose.animation.core.tween(if (FinFoxTheme.reducedMotion) 0 else 700), label = "ring")
+    Box(Modifier.size(88.dp), contentAlignment = Alignment.Center) {
+        androidx.compose.foundation.Canvas(Modifier.fillMaxSize()) {
+            val stroke = androidx.compose.ui.graphics.drawscope.Stroke(width = 9.dp.toPx(), cap = androidx.compose.ui.graphics.StrokeCap.Round)
+            drawArc(track, -90f, 360f, false, style = stroke)
+            if (anim > 0f) drawArc(color, -90f, 360f * anim, false, style = stroke)
+        }
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(rate?.let { "$it%" } ?: "–", style = MaterialTheme.typography.titleMedium)
+            Text("saved", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Net savings per month: bars up for saved, down for overspent; the selected month is drawn solid. */
+@Composable
+private fun SavingsBars(points: List<com.mymoney.app.domain.SeriesPoint>, up: Color, down: Color) {
+    val maxAbs = points.maxOf { kotlin.math.abs(it.netMinor) }.coerceAtLeast(1)
+    val hasNeg = points.any { it.netMinor < 0 }
+    Row(Modifier.fillMaxWidth().height(if (hasNeg) 84.dp else 64.dp), horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.Bottom) {
+        points.forEachIndexed { i, p ->
+            val last = i == points.lastIndex
+            val alpha = if (last) 1f else 0.45f
+            Column(Modifier.weight(1f).fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
+                androidx.compose.foundation.Canvas(Modifier.weight(1f).fillMaxWidth()) {
+                    val base = if (hasNeg) size.height / 2 else size.height
+                    val h = (kotlin.math.abs(p.netMinor).toFloat() / maxAbs) * base
+                    val w = size.width * 0.6f
+                    val x = (size.width - w) / 2
+                    val r = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
+                    if (p.netMinor >= 0) drawRoundRect(up.copy(alpha = alpha), androidx.compose.ui.geometry.Offset(x, base - h), androidx.compose.ui.geometry.Size(w, h.coerceAtLeast(2f)), r)
+                    else drawRoundRect(down.copy(alpha = alpha), androidx.compose.ui.geometry.Offset(x, base), androidx.compose.ui.geometry.Size(w, h), r)
+                }
+                Spacer(Modifier.height(4.dp))
+                Text(p.label, style = MaterialTheme.typography.labelSmall, color = if (last) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+            }
+        }
     }
 }
 
@@ -245,7 +359,13 @@ private fun BalanceCard(s: HomeState, hidden: Boolean, onToggle: () -> Unit, onC
     fun fmt(v: Long) = if (hidden) Money.symbolFor(currency) + " •••••" else Money.format(v, currency)
     val shown = animatedMinor(s.totals.availableMinor)
     Column(
-        Modifier.fillMaxWidth().clip(com.mymoney.app.ui.theme.FinFoxShapes.heroCard).background(FinFoxTheme.colors.headerGradient).clickable(onClick = onClick).padding(20.dp)
+        Modifier.fillMaxWidth().clip(com.mymoney.app.ui.theme.FinFoxShapes.heroCard).background(FinFoxTheme.colors.headerGradient)
+            .drawBehind {
+                // Two soft rings: depth without noise.
+                drawCircle(Color.White.copy(alpha = 0.07f), radius = size.height * 0.75f, center = androidx.compose.ui.geometry.Offset(size.width * 1.02f, -size.height * 0.1f))
+                drawCircle(Color.White.copy(alpha = 0.05f), radius = size.height * 0.5f, center = androidx.compose.ui.geometry.Offset(size.width * 0.82f, size.height * 1.05f))
+            }
+            .clickable(onClick = onClick).padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("Total balance", color = onG.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
@@ -292,7 +412,7 @@ private fun BalancePart(label: String, value: String, icon: ImageVector, modifie
 
 private data class QA(val label: String, val icon: ImageVector, val color: Color, val route: String)
 
-/** The four things people do most: record an expense, record income, move money, pay by UPI. */
+/** The things people do most: record, move, pay and get paid. */
 @Composable
 private fun QuickActions(nav: NavController) {
     val fin = FinFoxTheme.colors
@@ -300,16 +420,20 @@ private fun QuickActions(nav: NavController) {
         QA("Expense", Icons.Filled.ArrowUpward, fin.expense, Routes.txnEdit(type = TxnType.EXPENSE.name)),
         QA("Income", Icons.Filled.ArrowDownward, fin.income, Routes.txnEdit(type = TxnType.INCOME.name)),
         QA("Transfer", Icons.Filled.SwapHoriz, fin.transfer, Routes.txnEdit(type = TxnType.TRANSFER.name)),
-        QA("Scan & Pay", Icons.Filled.QrCodeScanner, MaterialTheme.colorScheme.primary, Routes.pay(scan = true)),
+        QA("Pay", Icons.Filled.QrCodeScanner, MaterialTheme.colorScheme.primary, Routes.pay(scan = true)),
+        QA("Receive", Icons.Filled.QrCode2, fin.savings, Routes.RECEIVE),
     )
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
         actions.forEach { a ->
-            AppCard(Modifier.weight(1f), onClick = { nav.navigate(a.route) }, contentPadding = 10.dp) {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
-                    IconBadge(a.icon, a.color, 38.dp)
-                    Spacer(Modifier.height(6.dp))
-                    Text(a.label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Column(
+                Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable { nav.navigate(a.route) }.padding(vertical = 6.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Box(Modifier.size(52.dp).clip(RoundedCornerShape(16.dp)).background(a.color.copy(alpha = 0.12f)), contentAlignment = Alignment.Center) {
+                    Icon(a.icon, null, tint = a.color, modifier = Modifier.size(24.dp))
                 }
+                Spacer(Modifier.height(6.dp))
+                Text(a.label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }

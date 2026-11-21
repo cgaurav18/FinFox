@@ -10,6 +10,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.EventRepeat
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.PieChart
@@ -37,6 +38,7 @@ fun MoreScreen(nav: NavController) {
     val fin = FinFoxTheme.colors
     val items = listOf(
         MoreItem("Scan & Pay", "Pay any UPI QR and record it automatically", Icons.Filled.QrCodeScanner, fin.income, Routes.pay(scan = true)),
+        MoreItem("Receive money", "Your UPI IDs as QR codes to get paid", Icons.Filled.QrCode2, MaterialTheme.colorScheme.primary, Routes.RECEIVE),
         MoreItem("Auto-capture payments", "Record payments from bank SMS & UPI apps", Icons.Filled.AutoAwesome, MaterialTheme.colorScheme.primary, Routes.AUTO_CAPTURE),
         MoreItem("Accounts", "Bank accounts, credit cards & cash", Icons.Filled.AccountBalance, MaterialTheme.colorScheme.primary, Routes.ACCOUNTS),
         MoreItem("Scheduled Payments", "EMI, SIP, bills & subscriptions", Icons.Filled.EventRepeat, fin.warning, Routes.SCHEDULES),

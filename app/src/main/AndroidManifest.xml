@@ -57,6 +57,8 @@
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
+                <!-- Some payment SDKs look up UPI apps with a BROWSABLE intent; without it FinFox wouldn't be listed. -->
+                <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="upi" android:host="pay" />
             </intent-filter>
         </activity>

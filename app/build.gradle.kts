@@ -23,8 +23,8 @@ android {
         applicationId = "com.mymoney.app"
         minSdk = 26
         targetSdk = 35
-        versionCode = 9
-        versionName = "1.5.0"
+        versionCode = 10
+        versionName = "1.6.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
     }
@@ -112,6 +112,8 @@ dependencies {
     implementation(libs.biometric)
     implementation(libs.splashscreen)
     implementation(libs.kotlinx.serialization.json)
+    // QR codes for "Receive money" (generation only; pure Java, no network).
+    implementation(libs.zxing.core)
     implementation(libs.kotlinx.coroutines.android)
     // Home screen widgets
     implementation(libs.glance.appwidget)

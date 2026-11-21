@@ -36,6 +36,8 @@ object Routes {
     /** scan=true opens the QR scanner straight away; false starts with "pay a UPI ID". */
     const val PAY = "pay?scan={scan}"
     const val AUTO_CAPTURE = "auto-capture"
+    /** Show a QR code for the user's own UPI ID. */
+    const val RECEIVE = "receive"
 
     fun txns(type: String? = null) = "transactions" + (type?.let { "?type=$it" } ?: "")
     fun txnEdit(id: Long? = null, type: String? = null) = "txn-edit?id=${id ?: -1}" + (type?.let { "&type=$it" } ?: "")

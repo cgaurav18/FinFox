@@ -33,9 +33,24 @@ import javax.inject.Inject
 
 data class LoanTotals(val lent: Long = 0, val borrowed: Long = 0, val lentOverdue: Long = 0, val borrowedOverdue: Long = 0)
 
-data class MonthData(val income: Long = 0, val expense: Long = 0, val slices: List<Slice> = emptyList(), val sixMonths: List<SeriesPoint> = emptyList()) {
+data class MonthData(
+    val income: Long = 0,
+    val expense: Long = 0,
+    val slices: List<Slice> = emptyList(),
+    val sixMonths: List<SeriesPoint> = emptyList(),
+    /** January to the end of the selected month. */
+    val ytdIncome: Long = 0,
+    val ytdExpense: Long = 0,
+) {
     val net get() = income - expense
+    val ytdSaved get() = ytdIncome - ytdExpense
+    /** Share of this month's income kept (0–100); null without income. */
+    val savingsRate: Int? get() = if (income > 0) ((net.coerceAtLeast(0) * 100) / income).toInt() else null
+    /** Average monthly savings over the months shown that had any activity. */
+    val avgSaved: Long get() = sixMonths.filter { it.incomeMinor != 0L || it.expenseMinor != 0L }.let { a -> if (a.isEmpty()) 0 else a.sumOf { it.netMinor } / a.size }
 }
+
+data class GoalTotals(val saved: Long = 0, val target: Long = 0, val count: Int = 0)
 
 data class HomeState(
     val loading: Boolean = true,
@@ -45,6 +60,7 @@ data class HomeState(
     val month: YearMonth = YearMonth.now(),
     val monthData: MonthData = MonthData(),
     val loans: LoanTotals = LoanTotals(),
+    val goals: GoalTotals = GoalTotals(),
     val upcoming: List<ScheduleDetail> = emptyList(),
     val recent: List<TransactionDetail> = emptyList(),
     val today: LocalDate = LocalDate.now(),
@@ -59,6 +75,7 @@ class HomeViewModel @Inject constructor(
     schedules: ScheduleRepository,
     private val settings: SettingsRepository,
     profiles: com.mymoney.app.data.repo.ProfileRepository,
+    goals: com.mymoney.app.data.repo.GoalRepository,
 ) : ViewModel() {
     val month = MutableStateFlow(YearMonth.now())
     /** Persisted "Hide balances" preference (Settings → Security), toggled by the eye on the balance card. */
@@ -67,14 +84,16 @@ class HomeViewModel @Inject constructor(
     val profile = profiles.profile.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.mymoney.app.data.db.UserProfileEntity())
 
     private val monthData = month.flatMapLatest { ym ->
-        val range = DateRange(ym.minusMonths(5).atDay(1), ym.atEndOfMonth())
+        val yearStart = ym.withMonth(1).atDay(1)
+        val range = DateRange(minOf(ym.minusMonths(5).atDay(1), yearStart), ym.atEndOfMonth())
         txns.observeInRange(range).map { list ->
             val cur = list.filter { DateRange.month(ym).contains(it.txn.dateMillis) }
             val s = Reports.summary(cur)
             val slices = Reports.categoryBreakdown(cur).let { all ->
                 if (all.size <= 5) all else all.take(4) + Slice(-2, "Others", 0xFF94A3B8, all.drop(4).sumOf { it.valueMinor }, all.drop(4).sumOf { it.percent })
             }
-            MonthData(s.incomeMinor, s.expenseMinor, slices, Reports.monthly(list, ym.minusMonths(5), ym))
+            val ytd = Reports.summary(list.filter { DateRange(yearStart, ym.atEndOfMonth()).contains(it.txn.dateMillis) })
+            MonthData(s.incomeMinor, s.expenseMinor, slices, Reports.monthly(list, ym.minusMonths(5), ym), ytd.incomeMinor, ytd.expenseMinor)
         }
     }
 
@@ -83,6 +102,10 @@ class HomeViewModel @Inject constructor(
         loans.observeOverdue(LoanDirection.GAVE), loans.observeOverdue(LoanDirection.RECEIVED),
     ) { a, b, c, d -> LoanTotals(a, b, c, d) }
 
+    private val goalTotals = goals.observeGoals(false).map { list ->
+        GoalTotals(list.sumOf { it.savedMinor }, list.sumOf { it.goal.targetMinor }, list.size)
+    }
+
     private val upcoming = schedules.observeAll().map { list ->
         list.filter { it.schedule.status == ScheduleStatus.ACTIVE }.sortedBy { it.schedule.nextDueEpochDay }.take(4)
     }
@@ -90,10 +113,10 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeState> = combine(
         combine(accounts.observeAccounts(false), settings.settings) { a, s -> Triple(AccountRepository.totals(a), a.size, s.profileName) },
         combine(month, monthData) { m, d -> m to d },
-        loanTotals,
+        combine(loanTotals, goalTotals) { l, g -> l to g },
         upcoming,
         txns.observeRecent(6),
-    ) { acc, md, lt, up, recent ->
-        HomeState(false, acc.third, acc.first, acc.second, md.first, md.second, lt, up, recent, Dates.today())
+    ) { acc, md, lg, up, recent ->
+        HomeState(false, acc.third, acc.first, acc.second, md.first, md.second, lg.first, lg.second, up, recent, Dates.today())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
 }
