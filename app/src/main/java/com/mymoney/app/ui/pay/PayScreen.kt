@@ -282,3 +282,41 @@ private fun CategoryPicker(f: PayForm, categories: List<com.mymoney.app.data.db.
         }
     }
 }
+
+/**
+ * "Pay with FinFox" when a shopping app (Blinkit, Zepto, …) offers FinFox among its UPI apps: the user picks
+ * the category, then FinFox forwards the payment unchanged to their UPI app and hands the UPI app's answer
+ * back to the shopping app ([onResult]), so the order completes as usual.
+ */
+@Composable
+fun ForwardPayScreen(vm: PayViewModel, requestedBy: String?, onResult: (Int, android.content.Intent?) -> Unit, onClose: () -> Unit) {
+    val f by vm.form.collectAsStateWithLifecycle()
+    val accounts by vm.accounts.collectAsStateWithLifecycle()
+    val categories by vm.categories.collectAsStateWithLifecycle()
+    val busy by vm.busy.collectAsStateWithLifecycle()
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(Unit) { vm.done.collect { onClose() } }
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { res ->
+        val data = res.data
+        onResult(res.resultCode, data)
+        val extras = data?.extras?.keySet()?.associateWith { k -> runCatching { data.extras?.get(k)?.toString() }.getOrNull() }.orEmpty()
+        vm.onResult(data?.getStringExtra("response"), extras)
+    }
+    AppScaffold(title = "Pay with FinFox", onBack = onClose) { pad ->
+        Column(
+            Modifier.padding(pad).fillMaxSize().imePadding().verticalScroll(rememberScrollState()).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            if (requestedBy != null) Text(
+                "Payment requested by $requestedBy. Choose what it's for, then pick your UPI app. FinFox records it and returns you to $requestedBy.",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            if (f.stage == PayStage.FORM) PayForm(f, vm, accounts, categories, busy) { app ->
+                scope.launch {
+                    val l = vm.prepare(app) ?: return@launch
+                    try { launcher.launch(l.intent) } catch (_: ActivityNotFoundException) { vm.onAppLaunchFailed() }
+                }
+            }
+        }
+    }
+}

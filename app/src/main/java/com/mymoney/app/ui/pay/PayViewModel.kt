@@ -129,6 +129,23 @@ class PayViewModel @Inject constructor(
         return true
     }
 
+    /**
+     * A payment another app (Blinkit, Zepto, …) sent to FinFox as a UPI app. FinFox records it and forwards the
+     * link, unchanged, to the user's real UPI app. Returns false when the link isn't a UPI payment.
+     */
+    fun startForwarded(uri: String?): Boolean {
+        val upi = uri?.let(UpiUri::parse) ?: return false
+        forwardUri = uri
+        useUpi(upi)
+        return true
+    }
+
+    /** The original link from the other app; null for FinFox's own Scan & Pay. */
+    private var forwardUri: String?
+        get() = handle.get<String>("forwardUri")
+        set(v) { handle["forwardUri"] = v }
+    val isForwarded: Boolean get() = forwardUri != null
+
     fun submitPayee() {
         val f = _form.value
         val vpa = f.vpaInput.trim()
@@ -173,6 +190,13 @@ class PayViewModel @Inject constructor(
     suspend fun prepare(app: UpiApp): PayLaunch? {
         val (upi, amount) = validated() ?: return null
         lastApp = app.packageName
+        forwardUri?.let { original ->
+            // Forwarded from a shopping app: hand over exactly what it asked for (its order reference and
+            // signature must stay intact). Only an open amount is filled in.
+            startPending(upi, amount, app)
+            val link = if (upi.amountMinor != null) original else upi.toPayUri(amount, null)
+            return PayLaunch(Intent(Intent.ACTION_VIEW, Uri.parse(link)).setPackage(app.packageName), handoff = false)
+        }
         val mode = appearance.payMode.first()
         val direct = when (mode) {
             com.mymoney.app.data.repo.PayMode.DIRECT -> true
@@ -235,6 +259,15 @@ class PayViewModel @Inject constructor(
     fun onResult(response: String?, extras: Map<String, String?>) {
         val id = paymentId ?: return
         val r = UpiResponse.parse(response, extras)
+        if (isForwarded) {
+            // The shopping app is waiting: never hold it up with questions.
+            when (r.status) {
+                UpiResultStatus.SUCCESS -> record(id, r.approvalRef)
+                UpiResultStatus.FAILURE -> viewModelScope.launch { capture.failPayment(id); finish() }
+                UpiResultStatus.SUBMITTED, UpiResultStatus.UNKNOWN -> { bus.show("FinFox will record it when your bank's SMS arrives"); finish() }
+            }
+            return
+        }
         when (r.status) {
             UpiResultStatus.SUCCESS -> record(id, r.approvalRef)
             UpiResultStatus.FAILURE -> viewModelScope.launch {
@@ -270,7 +303,8 @@ class PayViewModel @Inject constructor(
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay"))
         val infos = if (android.os.Build.VERSION.SDK_INT >= 33) pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
         else @Suppress("DEPRECATION") pm.queryIntentActivities(intent, 0)
-        return infos.map { it.activityInfo.packageName }.distinct().filter { it != context.packageName }.map { pkg ->
+        // Never list FinFox itself (any build, debug or release): it would forward the payment to itself.
+        return infos.map { it.activityInfo.packageName }.distinct().filter { it != context.packageName && !it.startsWith("com.mymoney.app") }.map { pkg ->
             val info = infos.first { it.activityInfo.packageName == pkg }
             UpiApp(pkg, info.loadLabel(pm).toString(), runCatching { info.loadIcon(pm) }.getOrNull())
         }.sortedBy { it.label.lowercase() }
