@@ -131,7 +131,13 @@ fun PayScreen(nav: NavController, vm: PayViewModel = hiltViewModel()) {
             confirmButton = {
                 TextButton(onClick = { scope.launch { vm.confirmHandoff()?.let(::startPay) } }) { Text("Copy UPI ID & open ${h.app.label}") }
             },
-            dismissButton = { TextButton(onClick = vm::cancelHandoff) { Text("Cancel") } },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = vm::cancelHandoff) { Text("Cancel") }
+                    // A shop QR FinFox didn't recognise: let the user try the direct redirect.
+                    if (!h.afterFailure) TextButton(onClick = { scope.launch { vm.payDirect()?.let(::startPay) } }) { Text("It's a shop: open directly") }
+                }
+            },
         )
     }
 

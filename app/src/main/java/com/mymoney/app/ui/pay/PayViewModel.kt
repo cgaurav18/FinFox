@@ -178,6 +178,19 @@ class PayViewModel @Inject constructor(
 
     fun cancelHandoff() = _form.update { it.copy(handoff = null) }
 
+    /**
+     * From the handoff dialog: try the direct hand-off anyway (a shop QR FinFox didn't recognise as one).
+     * If the UPI app refuses, [onResult] offers paying inside the app again.
+     */
+    suspend fun payDirect(): PayLaunch? {
+        val h = _form.value.handoff ?: return null
+        val (upi, amount) = validated() ?: return null
+        _form.update { it.copy(handoff = null) }
+        lastApp = h.app.packageName
+        startPending(upi, amount, h.app)
+        return PayLaunch(Intent(Intent.ACTION_VIEW, Uri.parse(upi.toPayUri(amount, _form.value.note))).setPackage(h.app.packageName), handoff = false)
+    }
+
     /** Confirmed: records the pending payment and returns the intent that opens the UPI app. */
     suspend fun confirmHandoff(): PayLaunch? {
         val h = _form.value.handoff ?: return null

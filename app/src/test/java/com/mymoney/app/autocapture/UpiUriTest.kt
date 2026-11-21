@@ -56,4 +56,22 @@ class UpiUriTest {
         assertThat(UpiResponse.parse(null).status).isEqualTo(UpiResultStatus.UNKNOWN)
         assertThat(UpiResponse.parse(null, mapOf("Status" to "Success")).status).isEqualTo(UpiResultStatus.SUCCESS)
     }
+
+    @Test fun recognisesShopQrsWithoutMerchantCode() {
+        listOf(
+            "upi://pay?pa=Q123456789@ybl&pn=PhonePeMerchant&mc=0000&mode=02&purpose=00",
+            "upi://pay?pa=BHARATPE.9012345678@fbpe&pn=Sharma%20Stores&cu=INR",
+            "upi://pay?pa=sharmastores.12@okbizaxis&pn=Sharma%20Stores&aid=uGICAgID",
+            "upi://pay?pa=paytmqr2810050501011abcd@paytm&pn=Paytm%20Merchant&paytmqr=2810050501011ABCD",
+            "upi://pay?pa=shop@icici&pn=Shop&tr=ORD991",
+        ).forEach { assertThat(UpiUri.parse(it)!!.isMerchant).isTrue() }
+    }
+
+    @Test fun personalQrsAreNotMerchants() {
+        listOf(
+            "upi://pay?pa=rahul.sharma@okaxis&pn=Rahul%20Sharma&aid=uGICAgID",
+            "upi://pay?pa=9876543210@ybl&pn=Rahul&mc=0000&mode=02&purpose=00",
+            "upi://pay?pa=rahul@oksbi&pn=Rahul&mc=0000",
+        ).forEach { assertThat(UpiUri.parse(it)!!.isMerchant).isFalse() }
+    }
 }

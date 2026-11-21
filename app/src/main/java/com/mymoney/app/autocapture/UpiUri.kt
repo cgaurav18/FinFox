@@ -25,7 +25,20 @@ data class UpiUri(
     /** All parameters in their original order, raw (still URL-encoded). */
     val rawParams: List<Pair<String, String>> = emptyList(),
 ) {
-    val isMerchant: Boolean get() = !mc.isNullOrBlank() && mc != "0000"
+    /**
+     * A shop / business QR. UPI apps accept payments started by another app only for merchants, so this decides
+     * whether FinFox can hand the payment straight to the UPI app. Many shop QRs carry no merchant code
+     * (mc=0000 or none), so known merchant VPAs and merchant-only QR fields count too.
+     */
+    val isMerchant: Boolean get() {
+        if (!mc.isNullOrBlank() && mc.trim('0').isNotEmpty()) return true
+        val keys = rawParams.map { it.first.lowercase() }.toSet()
+        if (keys.any { it in merchantKeys }) return true
+        val handle = pa.substringBefore('@').lowercase()
+        val psp = pa.substringAfter('@').lowercase()
+        return psp.startsWith("okbiz") || psp in merchantPsps ||
+            merchantHandles.any { it.containsMatchIn(handle) }
+    }
     val displayName: String get() = pn?.takeIf { it.isNotBlank() } ?: pa
 
     /**
@@ -48,6 +61,15 @@ data class UpiUri(
     }
 
     companion object {
+        /** QR fields only merchants (or their acquirers) put in: order ref, signature, store/terminal ids. */
+        private val merchantKeys = setOf("tr", "sign", "mid", "msid", "mtid", "paytmqr", "qrmedium", "gstin", "invoiceno", "invoicedate")
+        /** Handles used only for business accounts: BharatPe, Google Pay for Business ("okbiz…" above). */
+        private val merchantPsps = setOf("fbpe", "bharatpe")
+        private val merchantHandles = listOf(
+            Regex("""^paytmqr"""),           // Paytm soundbox / shop QR: paytmqr281005050101xxxx@paytm
+            Regex("""^q\d{6,}$"""),          // PhonePe business QR: Q123456789@ybl
+            Regex("""^bharatpe"""),          // BHARATPE.90xxxx@fbpe / @icici
+        )
         private val vpaRegex = Regex("""^[a-zA-Z0-9][a-zA-Z0-9._-]{1,255}@[a-zA-Z][a-zA-Z0-9]{1,63}$""")
 
         fun isValidVpa(vpa: String) = vpaRegex.matches(vpa.trim())
