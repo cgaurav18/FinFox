@@ -46,6 +46,8 @@ object TxnMessageParser {
         "debited", "debit of", "spent", "paid", "sent", "withdrawn", "withdrawal", "purchase", "payment of", "transferred to", "dr.", "debit",
         // Card alerts: "Thank you for using your Credit Card ending 5678 for Rs 499 at AMAZON", "charged Rs 199".
         "for using", "used at", "used for", "charged", "deducted",
+        // HDFC cards: "A transaction of Rs. 110.00 was made using your HDFC Bank … Credit Card at …".
+        "made using", "was made on", "has been made on",
     )
     private val creditWords = listOf("credited", "received", "deposited", "refund", "refunded", "reversed", "reversal", "cashback", "cr.", "added to")
 
@@ -119,8 +121,12 @@ object TxnMessageParser {
         return s.any { it.isLetter() } || digits in 1..6
     }
 
+    /** "SMS BLOCKPCC 0311 to …": the card's last digits, printed only in the fraud footer by some banks (HDFC). */
+    private val blockDigitsRegex = Regex("""\bblock[a-z]*\s+(?:card\s+)?x*([0-9]{4})\b""", RegexOption.IGNORE_CASE)
+
     fun parse(rawText: String): ParsedTxn? {
         val full = rawText.replace(Regex("""\s+"""), " ").trim()
+        val footerDigits = blockDigitsRegex.find(full)?.groupValues?.get(1)
         val text = footerRegex.find(full)?.takeIf { it.range.first >= 20 }?.let { full.substring(0, it.range.first).trim() } ?: full
         if (text.length < 12) return null
         val lower = text.lowercase()
@@ -152,7 +158,8 @@ object TxnMessageParser {
             direction = direction,
             amountMinor = amount,
             accountLast4 = accMatch?.groupValues?.get(1)
-                ?: maskedAccountRegex.find(text.replace(upiCodeRefRegex, " "))?.groupValues?.get(1),
+                ?: maskedAccountRegex.find(text.replace(upiCodeRefRegex, " "))?.groupValues?.get(1)
+                ?: footerDigits?.takeIf { isCard },
             isCard = isCard,
             isCreditCard = isCreditCard,
             counterparty = party,
@@ -220,6 +227,13 @@ object TxnMessageParser {
 
     private fun prettyVpa(vpa: String): String {
         val handle = vpa.substringBefore('@')
+        // Shop QR handles are machine ids ("paytmqr6tduiv"): name the network instead.
+        val h = handle.lowercase()
+        when {
+            h.startsWith("paytmqr") -> return "Paytm merchant"
+            h.startsWith("bharatpe") || vpa.endsWith("@fbpe", ignoreCase = true) -> return "BharatPe merchant"
+            Regex("""^q\d{6,}$""").matches(h) -> return "PhonePe merchant"
+        }
         // Phone-number handles ("9876543210@ybl") are kept as is; names get tidied.
         if (handle.all { it.isDigit() }) return vpa.lowercase()
         return titleCase(handle.replace(Regex("""[._-]+"""), " ").replace(Regex("""\d+$"""), "").trim().ifEmpty { handle })

@@ -230,4 +230,19 @@ class TxnMessageParserTest {
         assertThat(p("INR 250 has been reversed to your Axis Bank Credit Card XX3392")!!.direction).isEqualTo(TxnDirection.CREDIT)
         assertThat(p("Rs.120 deducted from your A/c XX6101 towards SMS charges")!!.direction).isEqualTo(TxnDirection.DEBIT)
     }
+
+    @Test fun hdfcCreditCardUpiTransaction() {
+        val p = TxnMessageParser.parse(
+            "A transaction of Rs. 110.00 was made using your HDFC Bank Pixel Play Credit Card at paytmqr6tduiv@ptys via UPI 669000839167 " +
+                "on 20/11/26 at 10:10. Not you? Block your Card: https://1.hdfc.bank.in/HDFCBK/s/K513LE54 or SMS BLOCKPCC 0311 to 8433642286"
+        )!!
+        assertThat(p.direction).isEqualTo(TxnDirection.DEBIT)
+        assertThat(p.amountMinor).isEqualTo(11_000)
+        assertThat(p.isCreditCard).isTrue()
+        assertThat(p.accountLast4).isEqualTo("0311")
+        assertThat(p.vpa).isEqualTo("paytmqr6tduiv@ptys")
+        assertThat(p.counterparty).isEqualTo("Paytm merchant")
+        assertThat(p.refNo).isEqualTo("669000839167")
+        assertThat(p.kind).isEqualTo(CaptureKind.NORMAL)
+    }
 }
