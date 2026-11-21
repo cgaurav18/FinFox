@@ -144,7 +144,7 @@ class PayViewModel @Inject constructor(
         if (f.accountId == null) { bus.show("Choose the account you're paying from"); return null }
         val ref = "FF" + UUID.randomUUID().toString().replace("-", "").take(18).uppercase()
         paymentId = capture.startPayment(upi.pa, upi.pn, amount, f.categoryId, f.accountId, f.note.trim().ifBlank { null }, ref, app.packageName)
-        return Intent(Intent.ACTION_VIEW, Uri.parse(upi.toPayUri(amount, f.note, ref))).setPackage(app.packageName)
+        return Intent(Intent.ACTION_VIEW, Uri.parse(upi.toPayUri(amount, f.note))).setPackage(app.packageName)
     }
 
     fun onAppLaunchFailed() {

@@ -28,16 +28,21 @@ data class UpiUri(
     val isMerchant: Boolean get() = !mc.isNullOrBlank() && mc != "0000"
     val displayName: String get() = pn?.takeIf { it.isNotBlank() } ?: pa
 
-    /** The URI handed to the UPI app. [amountMinor] is used only when the QR didn't fix an amount. */
-    fun toPayUri(amountMinor: Long, note: String?, txnRef: String): String {
+    /**
+     * The URI handed to the UPI app. [amountMinor] is used only when the QR didn't fix an amount.
+     *
+     * Kept deliberately minimal: UPI apps (GPay, PhonePe, bank apps) refuse intent payments with
+     * "payment not allowed" when a person-to-person link carries merchant-only fields such as `tr`,
+     * or when a merchant QR has been altered. So we never add `tr`, and add a note only to plain
+     * personal links. Our own reference is kept locally and isn't needed by the UPI app.
+     */
+    fun toPayUri(amountMinor: Long, note: String?): String {
         val params = rawParams.ifEmpty { listOfNotNull("pa" to enc(pa).replace("%40", "@"), pn?.let { "pn" to enc(it) }) }.toMutableList()
         val keys = params.map { it.first.lowercase() }.toSet()
         if ("am" !in keys) params += "am" to formatAmount(amountMinor)
         if ("cu" !in keys) params += "cu" to "INR"
-        // A signed QR must not be altered beyond the open fields; notes and refs go only on plain links.
-        if ("sign" !in keys) {
-            if ("tn" !in keys && !note.isNullOrBlank()) params += "tn" to enc(note.take(50))
-            if ("tr" !in keys && !isMerchant) params += "tr" to enc(txnRef)
+        if ("sign" !in keys && !isMerchant && "tn" !in keys && !note.isNullOrBlank()) {
+            params += "tn" to enc(note.trim().take(50))
         }
         return "upi://pay?" + params.joinToString("&") { "${it.first}=${it.second}" }
     }

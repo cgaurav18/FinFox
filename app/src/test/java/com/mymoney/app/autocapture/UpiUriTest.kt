@@ -26,19 +26,27 @@ class UpiUriTest {
 
     @Test fun payUriAddsOpenAmountAndKeepsScannedParams() {
         val u = UpiUri.parse("upi://pay?pa=shop@ybl&pn=Corner%20Shop&mc=5411")!!
-        val out = u.toPayUri(12_000, "Milk", "FF123")
-        assertThat(out).startsWith("upi://pay?pa=shop@ybl&pn=Corner%20Shop&mc=5411&am=120.00&cu=INR")
-        assertThat(out).contains("tn=Milk")
+        val out = u.toPayUri(12_000, "Milk")
+        // Merchant QR: only the open amount/currency are filled in; no note or reference is added.
+        assertThat(out).isEqualTo("upi://pay?pa=shop@ybl&pn=Corner%20Shop&mc=5411&am=120.00&cu=INR")
     }
 
     @Test fun signedQrIsNotAltered() {
         val u = UpiUri.parse("upi://pay?pa=merchant@hdfc&pn=M&am=10.00&cu=INR&sign=ABC")!!
-        assertThat(u.toPayUri(1_000, "note", "FF1")).isEqualTo("upi://pay?pa=merchant@hdfc&pn=M&am=10.00&cu=INR&sign=ABC")
+        assertThat(u.toPayUri(1_000, "note")).isEqualTo("upi://pay?pa=merchant@hdfc&pn=M&am=10.00&cu=INR&sign=ABC")
     }
 
-    @Test fun manualPayeeGetsReference() {
-        val out = UpiUri.manual("friend@oksbi", "Friend").toPayUri(5_000, null, "FFREF")
-        assertThat(out).isEqualTo("upi://pay?pa=friend@oksbi&pn=Friend&am=50.00&cu=INR&tr=FFREF")
+    @Test fun manualPayeeLinkHasNoMerchantFields() {
+        val out = UpiUri.manual("friend@oksbi", "Friend").toPayUri(5_000, null)
+        assertThat(out).isEqualTo("upi://pay?pa=friend@oksbi&pn=Friend&am=50.00&cu=INR")
+    }
+
+    @Test fun personalPaymentKeepsNoteButNeverAddsTr() {
+        val out = UpiUri.manual("friend@oksbi", "Friend").toPayUri(5_000, "Dinner")
+        assertThat(out).isEqualTo("upi://pay?pa=friend@oksbi&pn=Friend&am=50.00&cu=INR&tn=Dinner")
+        val scanned = UpiUri.parse("upi://pay?pa=rahul@okaxis&pn=Rahul&mc=0000")!!.toPayUri(10_000, "Rent")
+        assertThat(scanned).doesNotContain("tr=")
+        assertThat(scanned).contains("tn=Rent")
     }
 
     @Test fun parsesUpiAppResponses() {
