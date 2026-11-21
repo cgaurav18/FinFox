@@ -14,7 +14,7 @@ encrypted, to your own Google Drive.
 [![Kotlin](https://img.shields.io/badge/Kotlin-2.0-7F52FF?logo=kotlin&logoColor=white)](https://kotlinlang.org)
 [![Jetpack Compose](https://img.shields.io/badge/Jetpack%20Compose-Material%203-4285F4?logo=jetpackcompose&logoColor=white)](https://developer.android.com/compose)
 [![License: MIT](https://img.shields.io/badge/License-MIT-5B0FA6.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-127%20passing-16A34A)](#-testing)
+[![Tests](https://img.shields.io/badge/tests-187%20passing-16A34A)](#-testing)
 
 [Features](#-features) · [Install](#-install) · [Build](#-build-from-source) · [Architecture](#-architecture) · [Contributing](#-contributing)
 
@@ -48,6 +48,15 @@ encrypted, to your own Google Drive.
 - 🎯 **Budgets** per category with 80 / 90 / 100 % alerts, and **savings goals** with milestones
 - 📊 **Reports:** income vs expenses, cash flow, category breakdowns, CSV and PDF export
 
+### Automatic entries
+
+- 📷 **Scan & Pay:** scan any UPI QR (or type a UPI ID), pick a category, and pay with Google Pay, PhonePe, Paytm, BHIM or your bank's app. FinFox records the expense as soon as the UPI app confirms. If the app doesn't report back, FinFox matches the bank SMS that follows
+- ⚡ **Auto-capture:** debit and credit alerts from bank SMS, bank alert emails (Gmail, Outlook) and payment notifications from UPI and bank apps become transactions automatically, including credit card spends
+  - The last 4 digits in the message pick the right account; merchants pick the category, and FinFox learns from every correction
+  - The same payment reported by SMS, email *and* the UPI app is recorded once (emails are matched for up to 3 hours, since they often arrive late). Personal emails are never read. Money moved between your own accounts, or a card bill paid from your bank, becomes one transfer
+  - OTPs, payment requests, reminders, offers and failed payments are ignored
+  - Prefer to check first? Turn off "Add without asking" and confirm entries from a review list. You can also import the last 30 days of bank SMS
+
 ### Made for your phone
 
 - 🧩 **Seven home screen widgets** (Jetpack Glance): balance, income and expenses, quick actions, upcoming payments, money with people, budget, credit cards. They are responsive, follow light and dark mode, and have a privacy mode
@@ -60,8 +69,9 @@ encrypted, to your own Google Drive.
 - 🔐 **PIN and fingerprint lock** with auto-lock, lockout after wrong attempts and an offline recovery code
 - ☁️ **Optional Google Drive backup**, encrypted on the device with AES-256-GCM and an Argon2id key derived from your passphrase. It uses only Drive's hidden app folder
 - 🚫 **No sign-in, no analytics, no ads, no backend.** Network is used only for the optional Drive backup
+- 📩 **Auto-capture reads messages on the phone only.** SMS and notification access are optional and asked for only when you turn the feature on. Message text is parsed locally, kept in a local log you can clear, and never uploaded or backed up
 
-> FinFox is a **tracker**. It never moves real money and never asks for bank passwords, card numbers, CVVs or UPI PINs.
+> FinFox is a **tracker**. It never moves money itself and never asks for bank passwords, card numbers, CVVs or UPI PINs. Scan & Pay only hands the payment to your UPI app, where you enter your PIN.
 
 ## 📥 Install
 
@@ -70,6 +80,8 @@ encrypted, to your own Google Drive.
 3. Tap **Install**. Play Protect may warn because the app isn't from the Play Store; choose **More details → Install anyway**.
 
 Updates install over the previous version and keep all your data, as long as they're signed with the same release key.
+
+> **Auto-capture on Android 13+:** Android blocks SMS and notification access for apps installed from an APK file. If you see **"Restricted setting"**, open **App info → ⋮ (top right) → Allow restricted settings**, then grant the permission again from FinFox → Settings → Auto-capture payments.
 
 ## 🛠 Build from source
 
@@ -81,7 +93,7 @@ cd FinFox
 echo "sdk.dir=/path/to/Android/sdk" > local.properties   # Android Studio creates this for you
 
 ./gradlew assembleDebug               # debug APK  → app/build/outputs/apk/debug/
-./gradlew testDebugUnitTest           # 127 JVM + Robolectric tests
+./gradlew testDebugUnitTest           # 187 JVM + Robolectric tests
 ./gradlew connectedDebugAndroidTest   # instrumented tests (device or emulator)
 ./gradlew assembleRelease             # minified release APK
 ```

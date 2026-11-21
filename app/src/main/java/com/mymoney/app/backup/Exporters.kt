@@ -55,11 +55,11 @@ class Exporter @javax.inject.Inject constructor(@dagger.hilt.android.qualifiers.
     suspend fun writePdf(uri: Uri, list: List<TransactionDetail>, range: DateRange, currency: String, owner: String) = withContext(Dispatchers.IO) {
         val doc = PdfDocument()
         val w = 595; val h = 842; val margin = 40f
-        val title = Paint().apply { textSize = 20f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); color = 0xFF5B0FA6.toInt() /* FinFox Primary Purple */; isAntiAlias = true }
-        val head = Paint().apply { textSize = 12f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); color = 0xFF25083F.toInt(); isAntiAlias = true }
-        val body = Paint().apply { textSize = 9.5f; color = 0xFF25083F.toInt(); isAntiAlias = true }
-        val muted = Paint().apply { textSize = 9f; color = 0xFF62576F.toInt(); isAntiAlias = true }
-        val line = Paint().apply { color = 0xFFE9E1F0.toInt(); strokeWidth = 1f }
+        val title = Paint().apply { textSize = 20f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); color = 0xFF2E6F68.toInt() /* FinFox brand teal */; isAntiAlias = true }
+        val head = Paint().apply { textSize = 12f; typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD); color = 0xFF1B2623.toInt(); isAntiAlias = true }
+        val body = Paint().apply { textSize = 9.5f; color = 0xFF1B2623.toInt(); isAntiAlias = true }
+        val muted = Paint().apply { textSize = 9f; color = 0xFF5C6B66.toInt(); isAntiAlias = true }
+        val line = Paint().apply { color = 0xFFE3E8E6.toInt(); strokeWidth = 1f }
         var pageNo = 0
         var page: PdfDocument.Page? = null
         var y = 0f

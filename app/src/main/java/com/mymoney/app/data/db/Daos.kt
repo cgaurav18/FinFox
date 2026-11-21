@@ -420,6 +420,9 @@ interface ReminderDao {
 
     @Query("DELETE FROM notification_reminders WHERE refType = :refType AND refId = :refId")
     suspend fun deleteFor(refType: String, refId: Long)
+
+    @Query("SELECT EXISTS(SELECT 1 FROM notification_reminders WHERE refType = :refType AND refId = :refId AND dueKey = :dueKey)")
+    suspend fun exists(refType: String, refId: Long, dueKey: Long): Boolean
 }
 
 @Dao

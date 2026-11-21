@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.AddToDrive
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudOff
@@ -77,6 +78,8 @@ fun DriveConnectionScreen(nav: NavController, vm: CloudBackupViewModel = hiltVie
                     }
                 }
             }
+            val setup by vm.driveSetupProblem.collectAsStateWithLifecycle()
+            if (setup) DriveSetupCard()
             Text("Tap Connect and choose the Google account whose Drive should hold your backups. No FinFox account or sign-in is needed.",
                 style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             SectionHeader("What FinFox can access")
@@ -112,5 +115,44 @@ private fun Point(icon: ImageVector, title: String, text: String) {
             Text(title, style = MaterialTheme.typography.titleSmall)
             Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+    }
+}
+
+/**
+ * Shown when Google rejects the build (DEVELOPER_ERROR). Drive access needs an Android OAuth client registered in
+ * Google Cloud for this exact package name and signing SHA-1; the values are read from the running app.
+ */
+@Composable
+private fun DriveSetupCard() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
+    val sha1 = remember { com.mymoney.app.cloud.signingSha1(context) ?: "unknown" }
+    AppCard {
+        Text("Google Drive isn't set up for this build", style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.error)
+        Spacer(Modifier.height(6.dp))
+        Text("Google only lets registered apps use Drive. Register this build once in Google Cloud Console (free):",
+            style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(8.dp))
+        listOf(
+            "1. console.cloud.google.com → create a project",
+            "2. APIs & Services → Library → enable \"Google Drive API\"",
+            "3. OAuth consent screen → External → add your Gmail under Test users",
+            "4. Credentials → Create credentials → OAuth client ID → Android, with the package name and SHA-1 below",
+            "5. Wait a few minutes, then tap Connect again",
+        ).forEach { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(vertical = 2.dp)) }
+        Spacer(Modifier.height(10.dp))
+        SetupValue("Package name", context.packageName) { clipboard.setText(androidx.compose.ui.text.AnnotatedString(context.packageName)) }
+        SetupValue("SHA-1", sha1) { clipboard.setText(androidx.compose.ui.text.AnnotatedString(sha1)) }
+    }
+}
+
+@Composable
+private fun SetupValue(label: String, value: String, onCopy: () -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.bodySmall.copy(fontFamily = androidx.compose.ui.text.font.FontFamily.Monospace))
+        }
+        androidx.compose.material3.IconButton(onClick = onCopy) { Icon(Icons.Filled.ContentCopy, "Copy $label", tint = MaterialTheme.colorScheme.primary) }
     }
 }

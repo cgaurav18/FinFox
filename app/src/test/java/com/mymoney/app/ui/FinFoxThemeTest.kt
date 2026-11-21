@@ -17,7 +17,8 @@ import com.mymoney.app.ui.theme.LightFinFoxColors
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.Rule
@@ -42,32 +43,17 @@ class FinFoxThemeTest {
         assertWithMessage("$name contrast %.2f < $min".format(contrast(fg, bg))).that(contrast(fg, bg)).isAtLeast(min)
 
     @Test fun brandColoursMatchTheSpecification() {
-        assertThat(FinFoxPalette.PrimaryPurple).isEqualTo(Color(0xFF5B0FA6))
-        assertThat(FinFoxPalette.RoyalViolet).isEqualTo(Color(0xFF7C20D9))
-        assertThat(FinFoxPalette.FoxOrange).isEqualTo(Color(0xFFFF7417))
-        assertThat(FinFoxPalette.GoldenAmber).isEqualTo(Color(0xFFFFB21C))
-        assertThat(FinFoxPalette.DeepPlum).isEqualTo(Color(0xFF25083F))
-        // Light theme table
-        assertThat(LightColors.background).isEqualTo(Color(0xFFF8F6FC))
+        // "Sage & Slate": calm teal brand, no purple anywhere in the schemes.
+        assertThat(FinFoxPalette.Primary).isEqualTo(Color(0xFF2E6F68))
+        assertThat(FinFoxPalette.Ink).isEqualTo(Color(0xFF1B2623))
+        assertThat(LightColors.background).isEqualTo(Color(0xFFF5F7F6))
         assertThat(LightColors.surface).isEqualTo(Color(0xFFFFFFFF))
-        assertThat(LightColors.onSurface).isEqualTo(Color(0xFF25083F))
-        assertThat(LightColors.onSurfaceVariant).isEqualTo(Color(0xFF62576F))
-        assertThat(LightFinFoxColors.primaryButton).isEqualTo(Color(0xFF5B0FA6))
-        assertThat(LightFinFoxColors.selectedNav).isEqualTo(Color(0xFF7C20D9))
-        assertThat(LightFinFoxColors.accent).isEqualTo(Color(0xFFFF7417))
-        assertThat(LightFinFoxColors.border).isEqualTo(Color(0xFFE9E1F0))
-        // Dark theme table
-        assertThat(DarkColors.background).isEqualTo(Color(0xFF170B27))
-        assertThat(DarkColors.surface).isEqualTo(Color(0xFF2B1645))
-        assertThat(DarkColors.onSurface).isEqualTo(Color.White)
-        assertThat(DarkColors.onSurfaceVariant).isEqualTo(Color(0xFFC8B7D9))
-        assertThat(DarkFinFoxColors.primaryButton).isEqualTo(Color(0xFF7C20D9))
-        assertThat(DarkFinFoxColors.selectedNav).isEqualTo(Color(0xFFFF7417))
-        assertThat(DarkFinFoxColors.accent).isEqualTo(Color(0xFFFFB21C))
-        assertThat(DarkFinFoxColors.border).isEqualTo(Color(0xFF49305F))
-        // Financial status colours (canonical, used as-is in light mode)
+        assertThat(LightColors.onSurface).isEqualTo(FinFoxPalette.Ink)
+        assertThat(LightFinFoxColors.primaryButton).isEqualTo(FinFoxPalette.Primary)
+        assertThat(DarkColors.background).isEqualTo(Color(0xFF101513))
+        assertThat(DarkColors.surface).isEqualTo(Color(0xFF182120))
         assertThat(listOf(LightFinFoxColors.income, LightFinFoxColors.expense, LightFinFoxColors.transfer, LightFinFoxColors.warning, LightFinFoxColors.savings, LightFinFoxColors.overdue))
-            .containsExactly(Color(0xFF16A34A), Color(0xFFDC2626), Color(0xFF2563EB), Color(0xFFD97706), Color(0xFF0D9488), Color(0xFFB91C1C)).inOrder()
+            .containsExactly(Color(0xFF1E9B5C), Color(0xFFCC3D3D), Color(0xFF4F7CAC), Color(0xFFC7861C), Color(0xFF2A8C82), Color(0xFFB83A35)).inOrder()
     }
 
     @Test fun textMeetsWcagAaInBothThemes() {
@@ -84,7 +70,7 @@ class FinFoxThemeTest {
             assertContrast("$name secondary button label", f.onSecondaryButton, f.secondaryButton, 4.5)
             assertContrast("$name selected nav", f.selectedNav, card, 4.5)
         }
-        assertContrast("balance on gradient start", Color.White, FinFoxPalette.DeepPlum, 7.0)
+        for (c in FinFoxPalette.BrandGradient) assertContrast("balance text on gradient $c", Color.White, c, 4.5)
         assertContrast("destructive button", Color.White, FinFoxPalette.Expense, 4.5)
     }
 
@@ -108,7 +94,7 @@ class FinFoxThemeTest {
         first.setThemeMode(ThemeMode.DARK)
         assertThat(first.themeMode.first()).isEqualTo(ThemeMode.DARK)
         assertThat(settings.get().themeMode).isEqualTo(ThemeMode.DARK) // kept in backups too
-        scope1.cancel()
+        scope1.coroutineContext[Job]!!.cancelAndJoin() // the file is free only once the first store has fully closed
 
         // "Restart": a new DataStore over the same file.
         val scope2 = CoroutineScope(Dispatchers.IO + SupervisorJob())
@@ -116,6 +102,16 @@ class FinFoxThemeTest {
         assertThat(second.themeMode.first()).isEqualTo(ThemeMode.DARK)
         second.setThemeMode(ThemeMode.SYSTEM)
         assertThat(second.themeMode.first()).isEqualTo(ThemeMode.SYSTEM)
-        scope2.cancel(); e.db.close()
+        scope2.coroutineContext[Job]!!.cancelAndJoin(); e.db.close()
+    }
+
+    @Test fun scanAndPayModeDefaultsToAutomaticAndPersists() = runTest {
+        val e = Env.inMemory(); e.seed()
+        val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+        val repo = AppearanceRepository(PreferenceDataStoreFactory.create(scope = scope) { File(tmp.root, "pay.preferences_pb") }, SettingsRepository(e.db))
+        assertThat(repo.payMode.first()).isEqualTo(com.mymoney.app.data.repo.PayMode.AUTO)
+        repo.setPayMode(com.mymoney.app.data.repo.PayMode.DIRECT)
+        assertThat(repo.payMode.first()).isEqualTo(com.mymoney.app.data.repo.PayMode.DIRECT)
+        scope.coroutineContext[Job]!!.cancelAndJoin(); e.db.close()
     }
 }

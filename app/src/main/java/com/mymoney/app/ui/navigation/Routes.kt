@@ -33,6 +33,11 @@ object Routes {
     const val WIDGETS = "widgets"
     const val NOTIFICATIONS = "notifications"
     const val NOTIFICATION_PREFS = "notification-settings"
+    /** scan=true opens the QR scanner straight away; false starts with "pay a UPI ID". */
+    const val PAY = "pay?scan={scan}"
+    const val AUTO_CAPTURE = "auto-capture"
+    /** Show a QR code for the user's own UPI ID. */
+    const val RECEIVE = "receive"
 
     fun txns(type: String? = null) = "transactions" + (type?.let { "?type=$it" } ?: "")
     fun txnEdit(id: Long? = null, type: String? = null) = "txn-edit?id=${id ?: -1}" + (type?.let { "&type=$it" } ?: "")
@@ -48,6 +53,7 @@ object Routes {
     fun goalEdit(id: Long? = null) = "goal-edit?id=${id ?: -1}"
     fun goalDetail(id: Long) = "goal/$id"
     fun restoreDrive(fileId: String) = "restore?fileId=" + android.net.Uri.encode(fileId)
+    fun pay(scan: Boolean = true) = "pay?scan=$scan"
     fun restoreFile(uri: String) = "restore?uri=" + android.net.Uri.encode(uri)
 
     val topLevel = setOf(HOME, TXNS, REPORTS, MORE)

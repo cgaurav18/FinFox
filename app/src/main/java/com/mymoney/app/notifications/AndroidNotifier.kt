@@ -22,6 +22,9 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
         const val ID_CARD = 500_000
         const val ID_BACKUP = 600_000
         const val ID_REPAYMENT = 700_000
+        const val ID_CAPTURE = 800_000
+        const val ID_SUMMARY = 900_001
+        const val ID_BUDGET_SETUP = 900_002
     }
 
     private fun m(v: Long, c: String) = Money.format(v, c)
@@ -39,6 +42,22 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
         dispatcher.post(
             NotificationSpec((ID_BUDGET + budgetId).toInt(), NotificationCategory.BUDGET, title, text,
                 title, "Open FinFox to see your budget.", "budgets", ReminderRefType.BUDGET.name, budgetId)
+        )
+    }
+
+    override suspend fun monthlySummary(yearMonthKey: Int, title: String, text: String) {
+        dispatcher.post(
+            NotificationSpec(ID_SUMMARY, NotificationCategory.BUDGET, title, text,
+                "Your monthly summary is ready", "Open FinFox to see how last month went.", "budgets", ReminderRefType.MONTH_SUMMARY.name, yearMonthKey.toLong())
+        )
+    }
+
+    override suspend fun budgetSetupReminder(yearMonthKey: Int, monthName: String, copyable: Int) {
+        val title = "Set your budgets for $monthName"
+        val text = if (copyable > 0) "Copy last month's $copyable ${if (copyable == 1) "budget" else "budgets"} in one tap, or adjust them for $monthName."
+        else "Give each category a monthly limit. FinFox tracks your pace and tells you how much you can spend per day."
+        dispatcher.post(
+            NotificationSpec(ID_BUDGET_SETUP, NotificationCategory.BUDGET, title, text, title, text, "budgets", ReminderRefType.BUDGET_SETUP.name, yearMonthKey.toLong())
         )
     }
 
@@ -124,6 +143,25 @@ class AndroidNotifier @Inject constructor(private val dispatcher: NotificationDi
             NotificationSpec(ID_BACKUP + event.ordinal, NotificationCategory.BACKUP, title, text, title, text, "backup",
                 actions = if (event == BackupEvent.AUTH_EXPIRED || event == BackupEvent.FAILED) listOf(NotificationAction.RECONNECT, NotificationAction.DISMISS)
                 else listOf(NotificationAction.VIEW, NotificationAction.DISMISS))
+        )
+    }
+
+    override suspend fun paymentCaptured(captureId: Long, transactionId: Long?, debit: Boolean, amountMinor: Long, counterparty: String?, categoryName: String?, currency: String) {
+        val who = counterparty?.let { if (debit) " to $it" else " from $it" } ?: ""
+        val amount = m(amountMinor, currency)
+        val (title, text) = if (transactionId != null) {
+            (if (debit) "Expense added: $amount$who" else "Income added: $amount$who") to
+                "Recorded automatically${categoryName?.let { " under $it" } ?: ""}. Tap to change the category or account."
+        } else {
+            (if (debit) "Review: $amount spent$who" else "Review: $amount received$who") to
+                "FinFox found this payment but needs you to confirm the account or category."
+        }
+        dispatcher.post(
+            NotificationSpec(
+                ID_CAPTURE + (captureId % 99_999).toInt(), NotificationCategory.CAPTURE, title, text,
+                if (transactionId != null) "Payment recorded" else "Payment to review", "Open FinFox to see the details.",
+                if (transactionId != null) "txn-detail/$transactionId" else "auto-capture",
+            )
         )
     }
 }

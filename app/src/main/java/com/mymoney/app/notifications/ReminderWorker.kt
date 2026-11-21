@@ -32,7 +32,13 @@ import java.util.concurrent.TimeUnit
  * (deduplicated through notification_reminders). It only reminds: money is never moved automatically.
  * "Remind later" snoozes are honoured through reminder_state.
  */
-class ReminderEngine(private val db: AppDatabase, private val notifier: Notifier, private val clock: () -> Long = Dates::nowMillis) {
+class ReminderEngine(
+    private val db: AppDatabase,
+    private val notifier: Notifier,
+    /** Monthly summary and "set your budgets" reminders (switched off by tests that count other reminders). */
+    private val monthly: Boolean = true,
+    private val clock: () -> Long = Dates::nowMillis,
+) {
 
     /** Overdue reminders use a distinct key so the same installment can remind once before and once after the due date. */
     private fun key(due: LocalDate, today: LocalDate) = if (due.isBefore(today)) due.toEpochDay() + 10_000_000 else due.toEpochDay()
@@ -112,7 +118,47 @@ class ReminderEngine(private val db: AppDatabase, private val notifier: Notifier
                     }) posted++
             }
         }
+        // Budgets & monthly summary: on the first days of a month (catches up if the phone was off on the 1st).
+        if (monthly && settings.budgetAlertsEnabled && today.dayOfMonth <= 5) {
+            val thisMonth = YearMonth.from(today)
+            val last = thisMonth.minusMonths(1)
+            if (remindOnce(ReminderRefType.MONTH_SUMMARY, Dates.ymKey(last).toLong(), { monthlyReport(last, today, currency) })) posted++
+            if (db.budgetDao().getForMonth(Dates.ymKey(thisMonth)).isEmpty()) {
+                val copyable = db.budgetDao().getForMonth(Dates.ymKey(last)).size
+                if (remind(ReminderRefType.BUDGET_SETUP, 0, Dates.ymKey(thisMonth).toLong()) {
+                        notifier.budgetSetupReminder(Dates.ymKey(thisMonth), thisMonth.month.getDisplayName(java.time.format.TextStyle.FULL, java.util.Locale.ENGLISH), copyable)
+                    }) posted++
+            }
+        }
         return posted
+    }
+
+    /** Posts [build]'s notification once per key; nothing (and no record) when there's nothing to say. */
+    private suspend fun remindOnce(type: ReminderRefType, key: Long, build: suspend () -> com.mymoney.app.domain.MonthlyReport?): Boolean {
+        if (db.reminderDao().exists(type.name, 0, key)) return false
+        val report = build() ?: return false
+        return remind(type, 0, key) { notifier.monthlySummary(key.toInt(), report.title, report.text) }
+    }
+
+    /** Last month's income, expenses, savings, budgets and trend. */
+    internal suspend fun monthlyReport(month: YearMonth, today: LocalDate, currency: String): com.mymoney.app.domain.MonthlyReport? {
+        val td = db.transactionDao()
+        val prev = month.minusMonths(1)
+        val all = td.getDetailsInRange(Dates.startOfDay(prev.atDay(1)), Dates.startOfDay(month.plusMonths(1).atDay(1)))
+        val cur = all.filter { java.time.YearMonth.from(Dates.toLocalDate(it.txn.dateMillis)) == month }
+        val before = all.filter { java.time.YearMonth.from(Dates.toLocalDate(it.txn.dateMillis)) == prev }
+        val income = cur.filter { it.txn.type == com.mymoney.app.data.db.TxnType.INCOME }.sumOf { it.txn.amountMinor }
+        val expenses = cur.filter { it.txn.type == com.mymoney.app.data.db.TxnType.EXPENSE }
+        val byCat = expenses.filter { it.txn.categoryId != null }.groupBy { it.txn.categoryId!! }.mapValues { e -> e.value.sumOf { it.txn.amountMinor } }
+        val prevExpense = before.filter { it.txn.type == com.mymoney.app.data.db.TxnType.EXPENSE }.sumOf { it.txn.amountMinor }.takeIf { before.isNotEmpty() }
+        val budgets = db.budgetDao().getForMonth(Dates.ymKey(month))
+        val summary = if (budgets.isEmpty()) null else com.mymoney.app.domain.BudgetInsights.summarize(
+            month, budgets.associate { it.categoryId to it.limitMinor }, byCat, null, today,
+        )
+        val names = db.categoryDao()
+        val cache = mutableMapOf<Long, String>()
+        for (id in byCat.keys + budgets.map { it.categoryId }) cache[id] = names.getById(id)?.name ?: "Other"
+        return com.mymoney.app.domain.MonthlyReports.build(month, income, expenses.sumOf { it.txn.amountMinor }, byCat, prevExpense, summary, { cache[it] ?: "Other" }, currency)
     }
 
     companion object {

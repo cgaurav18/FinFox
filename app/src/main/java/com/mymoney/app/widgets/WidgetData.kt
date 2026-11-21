@@ -16,6 +16,7 @@ import com.mymoney.app.data.db.UpcomingItem
 import com.mymoney.app.data.db.WidgetPreferencesEntity
 import com.mymoney.app.notifications.ReminderEngine
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.YearMonth
@@ -115,8 +116,19 @@ object WidgetModels {
 
 /** Reads snapshots for the widgets from Room (the single source of truth). */
 @Singleton
+/** The user's default UPI ID for the "My UPI QR" widget; [hidden] when widget privacy mode is on. */
+data class UpiQrModel(val name: String, val vpa: String, val payload: String, val hidden: Boolean)
+
 class WidgetRepository @Inject constructor(private val db: AppDatabase) {
     private val dao = db.widgetDao()
+
+    /** Saved UPI IDs (set by Hilt; absent in tests that don't need it). */
+    @set:Inject var upi: com.mymoney.app.data.repo.MyUpiRepository? = null
+
+    suspend fun upiQr(): UpiQrModel? {
+        val id = upi?.ids?.first()?.firstOrNull() ?: return null
+        return UpiQrModel(id.name, id.vpa, com.mymoney.app.autocapture.UpiUri.receiveUri(id.vpa, id.name), prefs().privacyMode)
+    }
 
     fun observePrefs(): Flow<WidgetPreferencesEntity> = dao.observePrefs().map { it ?: WidgetPreferencesEntity() }
     suspend fun prefs(): WidgetPreferencesEntity = dao.getPrefs() ?: WidgetPreferencesEntity()

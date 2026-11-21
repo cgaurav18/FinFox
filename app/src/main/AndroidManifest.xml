@@ -8,6 +8,18 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <!-- Auto-capture (optional, asked for only when the user turns it on): bank SMS are parsed on the device
+         to record payments. Message text never leaves the phone. -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+
+    <!-- Scan & Pay hands the payment to an installed UPI app (Android 11+ package visibility). -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="upi" android:host="pay" />
+        </intent>
+    </queries>
 
     <application
         android:name=".MyMoneyApp"
@@ -29,6 +41,54 @@
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Launcher shortcuts: Scan & Pay, Receive, Add expense. -->
+            <meta-data android:name="android.app.shortcuts" android:resource="@xml/shortcuts" />
+        </activity>
+
+        <!-- Quick-settings tiles (swipe down twice → edit tiles): Scan & Pay and My UPI QR. -->
+        <service
+            android:name=".tiles.ScanPayTile"
+            android:exported="true"
+            android:icon="@drawable/ic_shortcut_scan"
+            android:label="@string/tile_scan"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+        <service
+            android:name=".tiles.ReceiveTile"
+            android:exported="true"
+            android:icon="@drawable/ic_shortcut_receive"
+            android:label="@string/tile_receive"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter><action android:name="android.service.quicksettings.action.QS_TILE" /></intent-filter>
+        </service>
+
+        <!-- Shares the "Receive money" QR image with other apps (read-only, cache files only). -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.files"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
+        </provider>
+
+        <!-- "Pay with FinFox": listed as a UPI app in shopping apps (Blinkit, Zepto, …). FinFox records the payment
+             and forwards the link, unchanged, to the user's own UPI app. Standard launch mode so the result
+             reaches the calling app. -->
+        <activity
+            android:name=".UpiForwardActivity"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:excludeFromRecents="true"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.MyMoney">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <!-- Some payment SDKs look up UPI apps with a BROWSABLE intent; without it FinFox wouldn't be listed. -->
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="upi" android:host="pay" />
             </intent-filter>
         </activity>
 
@@ -117,10 +177,55 @@
                 android:resource="@xml/widget_credit_cards" />
         </receiver>
 
+        <receiver
+            android:name=".widgets.ScanPayReceiver"
+            android:exported="true"
+            android:label="Scan &amp; Pay">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_scan_pay" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.ReceiveQrReceiver"
+            android:exported="true"
+            android:label="My UPI QR">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_receive_qr" />
+        </receiver>
+
         <!-- "Remind later" / "Dismiss" notification buttons. Not exported: only our PendingIntents reach it. -->
         <receiver
             android:name=".notifications.NotificationActionReceiver"
             android:exported="false" />
+
+        <!-- Auto-capture: live bank SMS. Only the system (BROADCAST_SMS) can send to it. -->
+        <receiver
+            android:name=".autocapture.SmsCaptureReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter android:priority="999">
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Auto-capture: payment notifications from UPI and bank apps. The user enables it in system settings. -->
+        <service
+            android:name=".autocapture.PaymentNotificationListener"
+            android:exported="true"
+            android:label="@string/capture_listener_label"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
 
         <!-- WorkManager is initialised by MyMoneyApp (HiltWorkerFactory). -->
         <provider

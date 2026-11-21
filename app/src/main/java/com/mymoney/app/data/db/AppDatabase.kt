@@ -15,6 +15,8 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         UserProfileEntity::class, BackupMetadataEntity::class, BackupPreferencesEntity::class,
         NotificationHistoryEntity::class, NotificationPreferencesEntity::class, WidgetPreferencesEntity::class,
         ReminderStateEntity::class,
+        // v3
+        CapturedMessageEntity::class, MerchantRuleEntity::class, UpiPaymentEntity::class, AutoCapturePreferencesEntity::class,
     ],
     version = AppDatabase.VERSION,
     exportSchema = true,
@@ -34,9 +36,10 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun cloudBackupDao(): CloudBackupDao
     abstract fun notificationDao(): NotificationDao
     abstract fun widgetDao(): WidgetDao
+    abstract fun captureDao(): CaptureDao
 
     companion object {
-        const val VERSION = 2
+        const val VERSION = 3
         const val NAME = "my_money.db"
     }
 }
@@ -69,5 +72,25 @@ object Migrations {
         }
     }
 
-    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2)
+    /**
+     * v2 → v3: automatic payment capture (bank SMS / UPI notifications) and Scan & Pay. Purely additive.
+     */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(db: SupportSQLiteDatabase) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS `captured_messages` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `source` TEXT NOT NULL, `sender` TEXT, `body` TEXT NOT NULL, `textHash` TEXT NOT NULL, `receivedAt` INTEGER NOT NULL, `direction` TEXT NOT NULL, `amountMinor` INTEGER NOT NULL, `accountLast4` TEXT, `isCard` INTEGER NOT NULL, `counterparty` TEXT, `vpa` TEXT, `refNo` TEXT, `kind` TEXT NOT NULL, `status` TEXT NOT NULL, `suggestedAccountId` INTEGER, `suggestedCategoryId` INTEGER, `transactionId` INTEGER, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`transactionId`) REFERENCES `transactions`(`id`) ON UPDATE NO ACTION ON DELETE SET NULL )")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_captured_messages_receivedAt` ON `captured_messages` (`receivedAt`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_captured_messages_status` ON `captured_messages` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_captured_messages_textHash` ON `captured_messages` (`textHash`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_captured_messages_refNo` ON `captured_messages` (`refNo`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_captured_messages_transactionId` ON `captured_messages` (`transactionId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `merchant_rules` (`merchantKey` TEXT NOT NULL, `categoryId` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`merchantKey`), FOREIGN KEY(`categoryId`) REFERENCES `categories`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_merchant_rules_categoryId` ON `merchant_rules` (`categoryId`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `upi_payments` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `vpa` TEXT NOT NULL, `payeeName` TEXT, `amountMinor` INTEGER NOT NULL, `categoryId` INTEGER, `accountId` INTEGER, `note` TEXT, `txnRef` TEXT NOT NULL, `appPackage` TEXT, `status` TEXT NOT NULL, `transactionId` INTEGER, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_upi_payments_status` ON `upi_payments` (`status`)")
+            db.execSQL("CREATE INDEX IF NOT EXISTS `index_upi_payments_createdAt` ON `upi_payments` (`createdAt`)")
+            db.execSQL("CREATE TABLE IF NOT EXISTS `auto_capture_preferences` (`id` INTEGER NOT NULL, `enabled` INTEGER NOT NULL, `readSms` INTEGER NOT NULL, `readNotifications` INTEGER NOT NULL, `autoAdd` INTEGER NOT NULL, `notifyOnCapture` INTEGER NOT NULL, `defaultAccountId` INTEGER, PRIMARY KEY(`id`))")
+        }
+    }
+
+    val ALL: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 }

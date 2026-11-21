@@ -1,14 +1,13 @@
 <resources>
-    <!-- FinFox brand (mirrors ui/theme/Color.kt for XML-only surfaces: launcher, splash, widgets) -->
-    <color name="finfox_primary_purple">#5B0FA6</color>
-    <color name="finfox_royal_violet">#7C20D9</color>
-    <color name="finfox_fox_orange">#FF7417</color>
-    <color name="finfox_golden_amber">#FFB21C</color>
-    <color name="finfox_deep_plum">#25083F</color>
-    <color name="background">#F8F6FC</color>
-    <color name="ic_launcher_bg">#F3ECFB</color>
-    <color name="splash_bg">#25083F</color>
+    <!-- FinFox brand, "Sage & Slate" (mirrors ui/theme/Color.kt for XML-only surfaces: launcher, splash, widgets) -->
+    <color name="finfox_primary">#2E6F68</color>
+    <color name="finfox_primary_bright">#3F8A82</color>
+    <color name="finfox_accent">#C98A3D</color>
+    <color name="finfox_ink">#1B2623</color>
+    <color name="background">#F5F7F6</color>
+    <color name="ic_launcher_bg">#E3EFEC</color>
+    <color name="splash_bg">#1B2623</color>
     <!-- Widgets (day); night overrides in values-night -->
     <color name="widget_surface">#FFFFFFFF</color>
-    <color name="widget_tile">#FFF3ECFB</color>
+    <color name="widget_tile">#FFEEF2F0</color>
 </resources>

@@ -56,6 +56,8 @@ class SettingsViewModel @Inject constructor(
     fun update(transform: (SettingsEntity) -> SettingsEntity) = launchSafe { settings.update(transform) }
     fun setName(n: String) = launchSafe("Profile updated") { if (n.isBlank()) throw com.mymoney.app.core.FinanceException("Name can't be empty"); settings.update { it.copy(profileName = n.trim().take(40)) } }
     fun setTheme(t: ThemeMode) = launchSafe { appearance.setThemeMode(t) }
+    val payMode = appearance.payMode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), com.mymoney.app.data.repo.PayMode.AUTO)
+    fun setPayMode(m: com.mymoney.app.data.repo.PayMode) = launchSafe { appearance.setPayMode(m) }
     val themeMode = appearance.themeMode.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ThemeMode.SYSTEM)
     fun setNotifications(on: Boolean) = launchSafe { settings.update { it.copy(notificationsEnabled = on) }; if (on) ReminderWorker.schedule(context) }
     fun setBiometric(on: Boolean) = launchSafe(if (on) "Biometric unlock enabled" else "Biometric unlock disabled") { pins.setBiometric(on) }

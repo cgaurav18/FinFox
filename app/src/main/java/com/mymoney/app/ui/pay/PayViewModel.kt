@@ -1,0 +1,312 @@
+package com.mymoney.app.ui.pay
+
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.drawable.Drawable
+import android.net.Uri
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
+import com.mymoney.app.autocapture.CaptureRepository
+import com.mymoney.app.autocapture.UpiResponse
+import com.mymoney.app.autocapture.UpiResultStatus
+import com.mymoney.app.autocapture.UpiUri
+import com.mymoney.app.core.Money
+import com.mymoney.app.data.db.AccountType
+import com.mymoney.app.data.db.AccountWithBalance
+import com.mymoney.app.data.db.CategoryEntity
+import com.mymoney.app.data.db.CategoryType
+import com.mymoney.app.data.repo.AccountRepository
+import com.mymoney.app.data.repo.CategoryRepository
+import com.mymoney.app.ui.components.BaseViewModel
+import com.mymoney.app.ui.components.MessageBus
+import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.util.UUID
+import javax.inject.Inject
+
+data class UpiApp(val packageName: String, val label: String, val icon: Drawable?)
+
+enum class PayStage { SCANNING, ENTER_PAYEE, FORM }
+
+data class PayForm(
+    val stage: PayStage = PayStage.SCANNING,
+    val upi: UpiUri? = null,
+    val vpaInput: String = "",
+    val nameInput: String = "",
+    val vpaError: String? = null,
+    val amount: String = "",
+    val amountError: String? = null,
+    val categoryId: Long? = null,
+    /** The category was pre-selected from what this payee was categorised as before. */
+    val categorySuggested: Boolean = false,
+    /** The user tried to pay without choosing a category. */
+    val categoryMissing: Boolean = false,
+    val accountId: Long? = null,
+    val note: String = "",
+    /** The UPI app didn't report a clear result: ask the user. */
+    val askOutcome: Boolean = false,
+    /** Waiting for the user to confirm "pay inside the UPI app" for this app. */
+    val handoff: Handoff? = null,
+)
+
+/**
+ * Paying inside the UPI app itself. UPI apps (Google Pay, PhonePe, Paytm and bank apps) refuse
+ * person-to-person payments that another app starts ("payment not allowed"), so for people FinFox
+ * opens the UPI app normally with the UPI ID copied, and records the payment from the bank SMS /
+ * app notification (matched by amount) or from the user's answer when they come back.
+ */
+data class Handoff(val app: UpiApp, val amountMinor: Long, val afterFailure: Boolean = false)
+
+/** What to launch for a payment. [handoff] = the UPI app's home screen, not a payment intent. */
+data class PayLaunch(val intent: Intent, val handoff: Boolean)
+
+@HiltViewModel
+class PayViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val handle: SavedStateHandle,
+    private val capture: CaptureRepository,
+    private val appearance: com.mymoney.app.data.repo.AppearanceRepository,
+    accounts: AccountRepository,
+    categories: CategoryRepository,
+    bus: MessageBus,
+) : BaseViewModel(bus) {
+    private val scanFirst: Boolean = handle.get<Boolean>("scan") ?: true
+    private val _form = MutableStateFlow(PayForm(stage = if (scanFirst) PayStage.SCANNING else PayStage.ENTER_PAYEE))
+    val form: StateFlow<PayForm> = _form.asStateFlow()
+
+    /** UPI works from bank accounts and RuPay credit cards. */
+    val accounts: StateFlow<List<AccountWithBalance>> = accounts.observeAccounts(false)
+        .map { list -> list.filter { it.account.type != AccountType.CASH } }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+    val categories: StateFlow<List<CategoryEntity>> = categories.observe(CategoryType.EXPENSE)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    val apps: List<UpiApp> = queryUpiApps()
+
+    /** Survives process death while the user is in the UPI app. */
+    private var paymentId: Long?
+        get() = handle.get<Long>("paymentId")
+        set(v) { handle["paymentId"] = v }
+
+    init {
+        viewModelScope.launch {
+            val prefs = capture.prefs()
+            this@PayViewModel.accounts.collect { list ->
+                if (_form.value.accountId == null && list.isNotEmpty()) {
+                    val pick = prefs.defaultAccountId?.takeIf { id -> list.any { it.account.id == id } }
+                        ?: list.firstOrNull { it.account.type == AccountType.BANK }?.account?.id ?: list.first().account.id
+                    _form.update { it.copy(accountId = pick) }
+                }
+            }
+        }
+    }
+
+    fun edit(transform: (PayForm) -> PayForm) = _form.update(transform)
+
+    fun selectCategory(id: Long) = _form.update { it.copy(categoryId = id, categorySuggested = false, categoryMissing = false) }
+
+    fun scanCancelled() { if (_form.value.upi == null) _form.update { it.copy(stage = PayStage.ENTER_PAYEE) } }
+
+    /** Returns false when the code isn't a UPI QR. */
+    fun onScanned(payload: String?): Boolean {
+        val upi = payload?.let(UpiUri::parse)
+        if (upi == null) {
+            bus.show("That QR code isn't a UPI payment code")
+            _form.update { it.copy(stage = PayStage.ENTER_PAYEE) }
+            return false
+        }
+        useUpi(upi)
+        return true
+    }
+
+    /**
+     * A payment another app (Blinkit, Zepto, …) sent to FinFox as a UPI app. FinFox records it and forwards the
+     * link, unchanged, to the user's real UPI app. Returns false when the link isn't a UPI payment.
+     */
+    fun startForwarded(uri: String?): Boolean {
+        val upi = uri?.let(UpiUri::parse) ?: return false
+        forwardUri = uri
+        useUpi(upi)
+        return true
+    }
+
+    /** The original link from the other app; null for FinFox's own Scan & Pay. */
+    private var forwardUri: String?
+        get() = handle.get<String>("forwardUri")
+        set(v) { handle["forwardUri"] = v }
+    val isForwarded: Boolean get() = forwardUri != null
+
+    fun submitPayee() {
+        val f = _form.value
+        val vpa = f.vpaInput.trim()
+        if (!UpiUri.isValidVpa(vpa)) { _form.update { it.copy(vpaError = "Enter a UPI ID like name@okbank") }; return }
+        useUpi(UpiUri.manual(vpa, f.nameInput))
+    }
+
+    private fun useUpi(upi: UpiUri) {
+        _form.update {
+            it.copy(stage = PayStage.FORM, upi = upi, amount = upi.amountMinor?.let(Money::toInput) ?: it.amount, note = upi.tn ?: it.note)
+        }
+        viewModelScope.launch {
+            val cat = capture.suggestCategory(upi.pa, upi.pn)
+            _form.update { f -> if (f.categoryId == null && cat != null) f.copy(categoryId = cat, categorySuggested = true) else f }
+        }
+    }
+
+    /** Validates the form; returns the payee and amount, or null (with the error shown). */
+    private fun validated(): Pair<UpiUri, Long>? {
+        val f = _form.value
+        val upi = f.upi ?: return null
+        val amount = upi.amountMinor ?: when (val r = Money.parse(f.amount)) {
+            is Money.ParseResult.Ok -> r.minor
+            is Money.ParseResult.Error -> { _form.update { it.copy(amountError = r.message) }; return null }
+        }
+        if (amount > 100_000_00L * 5) { _form.update { it.copy(amountError = "UPI payments are limited to ₹5,00,000") }; return null }
+        if (f.categoryId == null) { _form.update { it.copy(categoryMissing = true) }; bus.show("Choose what this payment is for"); return null }
+        if (f.accountId == null) { bus.show("Choose the account you're paying from"); return null }
+        return upi to amount
+    }
+
+    private suspend fun startPending(upi: UpiUri, amount: Long, app: UpiApp) {
+        val f = _form.value
+        val ref = "FF" + UUID.randomUUID().toString().replace("-", "").take(18).uppercase()
+        paymentId = capture.startPayment(upi.pa, upi.pn, amount, f.categoryId, f.accountId, f.note.trim().ifBlank { null }, ref, app.packageName)
+    }
+
+    /**
+     * The user picked a UPI app. Merchants get a payment intent with everything filled in; people go
+     * through [Handoff] (a confirmation first), because UPI apps block person-to-person intents.
+     */
+    suspend fun prepare(app: UpiApp): PayLaunch? {
+        val (upi, amount) = validated() ?: return null
+        lastApp = app.packageName
+        forwardUri?.let { original ->
+            // Forwarded from a shopping app: hand over exactly what it asked for (its order reference and
+            // signature must stay intact). Only an open amount is filled in.
+            startPending(upi, amount, app)
+            val link = if (upi.amountMinor != null) original else upi.toPayUri(amount, null)
+            return PayLaunch(Intent(Intent.ACTION_VIEW, Uri.parse(link)).setPackage(app.packageName), handoff = false)
+        }
+        val mode = appearance.payMode.first()
+        val direct = when (mode) {
+            com.mymoney.app.data.repo.PayMode.DIRECT -> true
+            com.mymoney.app.data.repo.PayMode.COPY -> false
+            com.mymoney.app.data.repo.PayMode.AUTO -> upi.isMerchant
+        }
+        if (!direct) { _form.update { it.copy(handoff = Handoff(app, amount)) }; return null }
+        startPending(upi, amount, app)
+        return PayLaunch(Intent(Intent.ACTION_VIEW, Uri.parse(upi.toPayUri(amount, _form.value.note))).setPackage(app.packageName), handoff = false)
+    }
+
+    fun cancelHandoff() = _form.update { it.copy(handoff = null) }
+
+    /**
+     * From the handoff dialog: try the direct hand-off anyway (a shop QR FinFox didn't recognise as one).
+     * If the UPI app refuses, [onResult] offers paying inside the app again.
+     */
+    suspend fun payDirect(): PayLaunch? {
+        val h = _form.value.handoff ?: return null
+        val (upi, amount) = validated() ?: return null
+        _form.update { it.copy(handoff = null) }
+        lastApp = h.app.packageName
+        startPending(upi, amount, h.app)
+        return PayLaunch(Intent(Intent.ACTION_VIEW, Uri.parse(upi.toPayUri(amount, _form.value.note))).setPackage(h.app.packageName), handoff = false)
+    }
+
+    /** Confirmed: records the pending payment and returns the intent that opens the UPI app. */
+    suspend fun confirmHandoff(): PayLaunch? {
+        val h = _form.value.handoff ?: return null
+        val (upi, amount) = validated() ?: return null
+        _form.update { it.copy(handoff = null) }
+        startPending(upi, amount, h.app)
+        val pm = context.packageManager
+        val intent = pm.getLaunchIntentForPackage(h.app.packageName)
+            ?: Intent(Intent.ACTION_VIEW, Uri.parse(UpiUri.manual(upi.pa, upi.pn).toPayUri(amount, null))).setPackage(h.app.packageName)
+        awaitingReturn = true
+        return PayLaunch(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK), handoff = true)
+    }
+
+    /** Back in FinFox after paying inside the UPI app: ask how it went. */
+    fun onResumed() {
+        if (!awaitingReturn) return
+        awaitingReturn = false
+        if (paymentId != null) _form.update { it.copy(askOutcome = true) }
+    }
+
+    private var lastApp: String?
+        get() = handle.get<String>("lastApp")
+        set(v) { handle["lastApp"] = v }
+
+    private var awaitingReturn: Boolean
+        get() = handle.get<Boolean>("awaitingReturn") ?: false
+        set(v) { handle["awaitingReturn"] = v }
+
+    fun onAppLaunchFailed() {
+        paymentId?.let { id -> viewModelScope.launch { capture.failPayment(id) } }
+        bus.show("Couldn't open that UPI app")
+    }
+
+    fun onResult(response: String?, extras: Map<String, String?>) {
+        val id = paymentId ?: return
+        val r = UpiResponse.parse(response, extras)
+        if (isForwarded) {
+            // The shopping app is waiting: never hold it up with questions.
+            when (r.status) {
+                UpiResultStatus.SUCCESS -> record(id, r.approvalRef)
+                UpiResultStatus.FAILURE -> viewModelScope.launch { capture.failPayment(id); finish() }
+                UpiResultStatus.SUBMITTED, UpiResultStatus.UNKNOWN -> { bus.show("FinFox will record it when your bank's SMS arrives"); finish() }
+            }
+            return
+        }
+        when (r.status) {
+            UpiResultStatus.SUCCESS -> record(id, r.approvalRef)
+            UpiResultStatus.FAILURE -> viewModelScope.launch {
+                capture.failPayment(id)
+                paymentId = null
+                // The UPI app refused or the payment failed: offer paying inside the app, which always works.
+                val app = apps.firstOrNull { it.packageName == lastApp }
+                val amount = _form.value.upi?.let { u -> u.amountMinor ?: (Money.parse(_form.value.amount) as? Money.ParseResult.Ok)?.minor }
+                if (app != null && amount != null) _form.update { it.copy(handoff = Handoff(app, amount, afterFailure = true)) }
+                else bus.show("The payment failed or was cancelled. Nothing was recorded.")
+            }
+            UpiResultStatus.SUBMITTED, UpiResultStatus.UNKNOWN -> _form.update { it.copy(askOutcome = true) }
+        }
+    }
+
+    /** Answer to "Did the payment go through?". null = not sure: wait for the bank SMS. */
+    fun answerOutcome(paid: Boolean?) {
+        val id = paymentId ?: return
+        _form.update { it.copy(askOutcome = false) }
+        when (paid) {
+            true -> record(id, null)
+            false -> viewModelScope.launch { capture.failPayment(id); bus.show("Okay, nothing was recorded"); finish() }
+            null -> { bus.show("FinFox will record it when your bank's SMS arrives"); finish() }
+        }
+    }
+
+    private fun record(id: Long, approvalRef: String?) {
+        launchSafe(success = "Payment recorded", finishOnSuccess = true) { capture.completePayment(id, approvalRef) }
+    }
+
+    private fun queryUpiApps(): List<UpiApp> {
+        val pm = context.packageManager
+        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("upi://pay"))
+        val infos = if (android.os.Build.VERSION.SDK_INT >= 33) pm.queryIntentActivities(intent, PackageManager.ResolveInfoFlags.of(0))
+        else @Suppress("DEPRECATION") pm.queryIntentActivities(intent, 0)
+        // Never list FinFox itself (any build, debug or release): it would forward the payment to itself.
+        return infos.map { it.activityInfo.packageName }.distinct().filter { it != context.packageName && !it.startsWith("com.mymoney.app") }.map { pkg ->
+            val info = infos.first { it.activityInfo.packageName == pkg }
+            UpiApp(pkg, info.loadLabel(pm).toString(), runCatching { info.loadIcon(pm) }.getOrNull())
+        }.sortedBy { it.label.lowercase() }
+    }
+}

@@ -20,4 +20,10 @@ interface Notifier {
     suspend fun repaymentRecorded(loanId: Long, person: String, amountMinor: Long, outstandingMinor: Long, gave: Boolean, currency: String) {}
     suspend fun goalAlert(goalId: Long, name: String, alert: GoalAlert, savedMinor: Long, targetMinor: Long, targetDate: LocalDate?, currency: String) {}
     suspend fun backupEvent(event: BackupEvent, detail: String?) {}
+    /** Month-end summary (income, expenses, savings, budgets) on the first days of the next month. */
+    suspend fun monthlySummary(yearMonthKey: Int, title: String, text: String) {}
+    /** A new month started without budgets. [copyable] = budgets from last month that can be copied. */
+    suspend fun budgetSetupReminder(yearMonthKey: Int, monthName: String, copyable: Int) {}
+    /** A payment was read from a bank SMS / app notification. [transactionId] null means it is waiting for review. */
+    suspend fun paymentCaptured(captureId: Long, transactionId: Long?, debit: Boolean, amountMinor: Long, counterparty: String?, categoryName: String?, currency: String) {}
 }

@@ -52,6 +52,8 @@ object NotificationPolicy {
             NotificationCategory.BUDGET -> settings.budgetAlertsEnabled
             NotificationCategory.GOAL -> prefs.savingsAlerts
             NotificationCategory.BACKUP -> prefs.backupAlerts
+            // Has its own switch on the Auto-capture screen, checked before posting.
+            NotificationCategory.CAPTURE -> true
         }
     }
 
@@ -78,12 +80,13 @@ class NotificationDispatcher @Inject constructor(
     private val db: AppDatabase,
 ) {
     companion object {
-        /** FinFox Primary Purple accent for notification icons. */
-        private val BRAND_COLOR = com.mymoney.app.ui.theme.FinFoxPalette.PrimaryPurple.toArgb()
+        /** FinFox brand teal accent for notification icons. */
+        private val BRAND_COLOR = com.mymoney.app.ui.theme.FinFoxPalette.Primary.toArgb()
         const val CHANNEL_REMINDERS = "reminders"
         const val CHANNEL_BUDGET = "budget"
         const val CHANNEL_GOALS = "goals"
         const val CHANNEL_BACKUP = "backup"
+        const val CHANNEL_CAPTURE = "capture"
         const val EXTRA_ROUTE = "route"
         const val EXTRA_HISTORY_ID = "history_id"
         const val EXTRA_SYSTEM_ID = "system_id"
@@ -102,6 +105,8 @@ class NotificationDispatcher @Inject constructor(
                         .apply { description = "Savings goal milestones and target dates" },
                     NotificationChannel(CHANNEL_BACKUP, context.getString(R.string.channel_backup), NotificationManager.IMPORTANCE_LOW)
                         .apply { description = "Google Drive backup and restore results" },
+                    NotificationChannel(CHANNEL_CAPTURE, context.getString(R.string.channel_capture), NotificationManager.IMPORTANCE_LOW)
+                        .apply { description = "Payments recorded automatically from bank SMS and UPI apps" },
                 )
             )
         }
@@ -111,6 +116,7 @@ class NotificationDispatcher @Inject constructor(
             NotificationCategory.BUDGET -> CHANNEL_BUDGET
             NotificationCategory.GOAL -> CHANNEL_GOALS
             NotificationCategory.BACKUP -> CHANNEL_BACKUP
+            NotificationCategory.CAPTURE -> CHANNEL_CAPTURE
         }
 
         fun canPostToSystem(context: Context): Boolean {
@@ -162,7 +168,7 @@ class NotificationDispatcher @Inject constructor(
             .setStyle(NotificationCompat.BigTextStyle().bigText(spec.text))
             .setAutoCancel(true)
             .setWhen(System.currentTimeMillis()).setShowWhen(true)
-            .setCategory(if (spec.category == NotificationCategory.BACKUP) NotificationCompat.CATEGORY_STATUS else NotificationCompat.CATEGORY_REMINDER)
+            .setCategory(if (spec.category == NotificationCategory.BACKUP || spec.category == NotificationCategory.CAPTURE) NotificationCompat.CATEGORY_STATUS else NotificationCompat.CATEGORY_REMINDER)
             .setContentIntent(activityIntent(spec.route, historyId, spec.systemId, false, spec.systemId))
             .setDeleteIntent(NotificationActionReceiver.intent(context, NotificationActionReceiver.ACTION_SWIPED, spec, historyId))
         if (quiet) b.setSilent(true).setPriority(NotificationCompat.PRIORITY_LOW)

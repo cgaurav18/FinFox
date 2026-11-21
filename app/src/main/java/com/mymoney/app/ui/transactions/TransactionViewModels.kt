@@ -121,6 +121,7 @@ data class TxnForm(
 class AddTransactionViewModel @Inject constructor(
     handle: SavedStateHandle,
     private val repo: TransactionRepository,
+    private val capture: com.mymoney.app.autocapture.CaptureRepository,
     accounts: AccountRepository,
     categories: CategoryRepository,
     bus: MessageBus,
@@ -189,13 +190,15 @@ class AddTransactionViewModel @Inject constructor(
         if (f.type == TxnType.TRANSFER && f.toAccountId == null) { bus.show("Select the destination account"); return }
         val label = when (f.type) { TxnType.INCOME -> "Income"; TxnType.TRANSFER -> "Transfer"; else -> "Expense" }
         launchSafe(success = if (f.id == null) "$label saved" else "$label updated", finishOnSuccess = true) {
-            repo.save(
+            val savedId = repo.save(
                 TxnInput(
                     id = f.id, type = f.type, amountMinor = amount, accountId = f.accountId, toAccountId = f.toAccountId,
                     categoryId = f.categoryId, dateMillis = Dates.toMillis(f.date, f.time), merchant = f.merchant, note = f.note,
                     tags = f.tags, recurring = if (f.id == null) f.recurring else null,
                 )
             )
+            // Correcting an auto-captured entry teaches FinFox the merchant's category for next time.
+            if (f.id != null) capture.learnFromEdit(savedId)
         }
     }
 }

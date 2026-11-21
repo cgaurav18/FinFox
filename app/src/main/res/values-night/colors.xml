@@ -1,5 +1,5 @@
 <resources>
-    <color name="background">#170B27</color>
-    <color name="widget_surface">#FF2B1645</color>
-    <color name="widget_tile">#FF3B2259</color>
+    <color name="background">#101513</color>
+    <color name="widget_surface">#FF182120</color>
+    <color name="widget_tile">#FF212B29</color>
 </resources>

@@ -31,6 +31,8 @@ class FakeNotifier : Notifier {
     val repayments = mutableListOf<Pair<Long, Long>>()
     val goals = mutableListOf<Pair<Long, GoalAlert>>()
     val backups = mutableListOf<BackupEvent>()
+    val summaries = mutableListOf<Pair<String, String>>()
+    val budgetSetups = mutableListOf<Pair<String, Int>>()
     override suspend fun budgetAlert(budgetId: Long, categoryName: String, percent: Int, spentMinor: Long, limitMinor: Long, currency: String) { budget += categoryName to percent }
     override suspend fun scheduleReminder(scheduleId: Long, title: String, amountMinor: Long, due: LocalDate, overdue: Boolean, currency: String, category: ScheduleCategory) { schedules += scheduleId to overdue }
     override suspend fun loanReminder(loanId: Long, person: String, outstandingMinor: Long, gave: Boolean, due: LocalDate, currency: String) { loans += loanId }
@@ -38,6 +40,8 @@ class FakeNotifier : Notifier {
     override suspend fun repaymentRecorded(loanId: Long, person: String, amountMinor: Long, outstandingMinor: Long, gave: Boolean, currency: String) { repayments += loanId to outstandingMinor }
     override suspend fun goalAlert(goalId: Long, name: String, alert: GoalAlert, savedMinor: Long, targetMinor: Long, targetDate: LocalDate?, currency: String) { goals += goalId to alert }
     override suspend fun backupEvent(event: BackupEvent, detail: String?) { backups += event }
+    override suspend fun monthlySummary(yearMonthKey: Int, title: String, text: String) { summaries += title to text }
+    override suspend fun budgetSetupReminder(yearMonthKey: Int, monthName: String, copyable: Int) { budgetSetups += monthName to copyable }
 }
 
 /** Wires real repositories over a Room database, as Hilt does in the app. */

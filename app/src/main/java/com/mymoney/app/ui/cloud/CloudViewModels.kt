@@ -109,6 +109,13 @@ class CloudBackupViewModel @Inject constructor(
 
     fun beforeExternalActivity() { lock.suppressNextBackgroundLock = true }
 
+    /** Google refused this build (not registered in Google Cloud): show the setup details instead of retrying. */
+    val driveSetupProblem = kotlinx.coroutines.flow.MutableStateFlow(false)
+    private fun authFailed(e: DriveAuthException, fallback: String) {
+        if (e.setupProblem) driveSetupProblem.value = true
+        bus.show(e.message ?: fallback)
+    }
+
     /** Google shows its account picker/consent; only the app-private drive.appdata scope is granted. */
     fun connectDrive() = launchSafe {
         val p = profiles.get()
@@ -117,17 +124,21 @@ class CloudBackupViewModel @Inject constructor(
                 is DriveAuthResult.Granted -> { profiles.onDriveConnected(r.email); bus.success("Google Drive connected" + (r.email?.let { " ($it)" } ?: "")) }
                 is DriveAuthResult.NeedsUser -> { beforeExternalActivity(); _consent.send(r.pendingIntent) }
             }
-        } catch (e: DriveAuthException) { bus.show(e.message ?: "Couldn't connect Google Drive") }
+        } catch (e: DriveAuthException) { authFailed(e, "Couldn't connect Google Drive") }
     }
 
     fun onConsentResult(resultCode: Int, data: Intent?) = launchSafe {
-        if (resultCode != Activity.RESULT_OK) { bus.show("Google Drive wasn't connected"); return@launchSafe }
+        if (resultCode != Activity.RESULT_OK) {
+            // "Access blocked" on Google's screen (app in testing, account not a test user) also ends up here.
+            bus.show("Google Drive wasn't connected. If Google said \"Access blocked\", add your Gmail as a test user in Google Cloud.")
+            return@launchSafe
+        }
         try {
             // The token only confirms the grant; it isn't stored. The account email is kept for silent re-authorization.
             val g = authorizer.tokenFromConsentResult(data)
             profiles.onDriveConnected(g.email)
             bus.success("Google Drive connected" + (g.email?.let { " ($it)" } ?: ""))
-        } catch (e: DriveAuthException) { bus.show(e.message ?: "Google Drive permission was not granted") }
+        } catch (e: DriveAuthException) { authFailed(e, "Google Drive permission was not granted") }
     }
 
     fun disconnectDrive() = launchSafe("Google Drive disconnected. Existing backups stay in your Drive.") {

@@ -25,6 +25,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.DoneAll
@@ -85,6 +86,7 @@ private fun categoryIcon(c: NotificationCategory): Pair<ImageVector, Color> = wh
     NotificationCategory.BUDGET -> Icons.Filled.PieChart to FinFoxTheme.colors.accent
     NotificationCategory.GOAL -> Icons.Filled.Savings to FinFoxTheme.colors.savings
     NotificationCategory.BACKUP -> Icons.Filled.Cloud to MaterialTheme.colorScheme.primary
+    NotificationCategory.CAPTURE -> Icons.Filled.AutoAwesome to FinFoxTheme.colors.income
 }
 
 @Composable
