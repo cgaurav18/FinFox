@@ -45,12 +45,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.google.mlkit.vision.barcode.common.Barcode
@@ -99,11 +102,43 @@ fun PayScreen(nav: NavController, vm: PayViewModel = hiltViewModel()) {
             .addOnFailureListener { vm.scanCancelled() }
     }
     LaunchedEffect(Unit) { if (f.stage == PayStage.SCANNING) startScan() }
+    LifecycleResumeEffect(Unit) { vm.onResumed(); onPauseOrDispose { } }
+
+    val clipboard = LocalClipboardManager.current
+    fun startPay(l: PayLaunch) {
+        if (l.handoff) {
+            f.upi?.let { clipboard.setText(AnnotatedString(it.pa)) }
+            try { context.startActivity(l.intent) } catch (_: ActivityNotFoundException) { vm.onAppLaunchFailed() }
+        } else {
+            try { payLauncher.launch(l.intent) } catch (_: ActivityNotFoundException) { vm.onAppLaunchFailed() }
+        }
+    }
+
+    f.handoff?.let { h ->
+        val payee = f.upi?.displayName ?: ""
+        AlertDialog(
+            onDismissRequest = vm::cancelHandoff,
+            title = { Text(if (h.afterFailure) "Pay inside ${h.app.label} instead" else "Pay ${Money.format(h.amountMinor)} in ${h.app.label}") },
+            text = {
+                Text(
+                    (if (h.afterFailure) "${h.app.label} didn't allow FinFox to start this payment. "
+                    else "UPI apps don't let other apps start payments to people, so you'll pay inside ${h.app.label}. ") +
+                        "FinFox copies the UPI ID ${f.upi?.pa ?: ""}: in ${h.app.label}, choose Pay UPI ID, paste it and pay " +
+                        "${Money.format(h.amountMinor)} to $payee.\n\nFinFox records it under the category you chose when the bank SMS " +
+                        "or payment notification arrives, or when you confirm on your return.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { scope.launch { vm.confirmHandoff()?.let(::startPay) } }) { Text("Copy UPI ID & open ${h.app.label}") }
+            },
+            dismissButton = { TextButton(onClick = vm::cancelHandoff) { Text("Cancel") } },
+        )
+    }
 
     if (f.askOutcome) AlertDialog(
         onDismissRequest = { vm.answerOutcome(null) },
         title = { Text("Did the payment go through?") },
-        text = { Text("The UPI app didn't tell FinFox the result. If you're not sure, FinFox records it automatically when your bank's SMS arrives (with auto-capture on).") },
+        text = { Text("FinFox couldn't get the result from the UPI app. If you're not sure, FinFox records it automatically when your bank's SMS arrives (with auto-capture on).") },
         confirmButton = { TextButton(onClick = { vm.answerOutcome(true) }) { Text("Yes, record it") } },
         dismissButton = {
             Row {
@@ -133,8 +168,7 @@ fun PayScreen(nav: NavController, vm: PayViewModel = hiltViewModel()) {
                 }
                 PayStage.FORM -> PayForm(f, vm, accounts, categories, busy) { app ->
                     scope.launch {
-                        val intent = vm.prepare(app) ?: return@launch
-                        try { payLauncher.launch(intent) } catch (_: ActivityNotFoundException) { vm.onAppLaunchFailed() }
+                        vm.prepare(app)?.let(::startPay)
                     }
                 }
             }
