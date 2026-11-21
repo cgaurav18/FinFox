@@ -1,17 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- updatePeriodMillis=0: widgets refresh on data changes and via WorkManager, never by polling. -->
+<!-- Scan & Pay: 2x1 by default, can shrink to 1x1. updatePeriodMillis=0: no polling (static buttons). -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:description="@string/widget_desc_scan_pay"
     android:initialLayout="@layout/glance_default_loading_layout"
-    android:minWidth="40dp"
+    android:previewLayout="@layout/widget_preview_scan_pay"
+    android:previewImage="@drawable/finfox_logo"
+    android:minWidth="110dp"
     android:minHeight="40dp"
     android:minResizeWidth="40dp"
     android:minResizeHeight="40dp"
     android:maxResizeWidth="420dp"
     android:maxResizeHeight="180dp"
-    android:targetCellWidth="1"
+    android:targetCellWidth="2"
     android:targetCellHeight="1"
-    android:previewImage="@drawable/ic_shortcut_scan"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />

@@ -380,29 +380,45 @@ fun CreditCardContent(m: CardModel) {
 
 // ---------------------------------------------------------------- Receivers
 
-// ---------------------------------------------------------------- 8. Scan & Pay (small, medium)
+// ---------------------------------------------------------------- 8. Scan & Pay (one fixed layout)
 
+/**
+ * A single "Scan & Pay" button at every size. [SizeMode.Single] on purpose: with responsive sizes launchers
+ * switch between their portrait/landscape measurements and the widget would flip between layouts on its own.
+ */
 class ScanPayWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.MEDIUM))
+    override val sizeMode = SizeMode.Single
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         provideContent { WidgetTheme { ScanPayContent() } }
     }
 }
 
-/** One big "Scan & Pay" button; the wide size adds "Pay UPI ID" and "Receive". */
 @Composable
 fun ScanPayContent() {
-    WidgetContainer(null, padding = 8) {
-        if (isWide) {
-            Row(GlanceModifier.fillMaxSize()) {
-                BigAction("Scan & Pay", R.drawable.ic_shortcut_scan, "pay?scan=true", "Scan a UPI QR and pay", GlanceModifier.defaultWeight().fillMaxHeight())
-                Spacer(GlanceModifier.width(6.dp))
-                BigAction("Pay UPI ID", R.drawable.ic_w_transfer, "pay?scan=false", "Pay a UPI ID", GlanceModifier.defaultWeight().fillMaxHeight())
-                Spacer(GlanceModifier.width(6.dp))
-                BigAction("Receive", R.drawable.ic_shortcut_receive, "receive", "Show my UPI QR", GlanceModifier.defaultWeight().fillMaxHeight())
-            }
-        } else {
-            BigAction("Scan & Pay", R.drawable.ic_shortcut_scan, "pay?scan=true", "Scan a UPI QR and pay", GlanceModifier.fillMaxSize())
+    WidgetContainer(null, padding = 6) {
+        BigAction("Scan & Pay", R.drawable.ic_shortcut_scan, "pay?scan=true", "Scan a UPI QR and pay", GlanceModifier.fillMaxSize())
+    }
+}
+
+// ---------------------------------------------------------------- 10. Pay & Receive bar (one fixed layout)
+
+class PayReceiveWidget : GlanceAppWidget() {
+    override val sizeMode = SizeMode.Single
+    override suspend fun provideGlance(context: Context, id: GlanceId) {
+        provideContent { WidgetTheme { PayReceiveContent() } }
+    }
+}
+
+/** Scan & Pay · Pay UPI ID · Receive, always side by side. */
+@Composable
+fun PayReceiveContent() {
+    WidgetContainer(null, padding = 6) {
+        Row(GlanceModifier.fillMaxSize()) {
+            BigAction("Scan & Pay", R.drawable.ic_shortcut_scan, "pay?scan=true", "Scan a UPI QR and pay", GlanceModifier.defaultWeight().fillMaxHeight())
+            Spacer(GlanceModifier.width(6.dp))
+            BigAction("Pay UPI ID", R.drawable.ic_w_transfer, "pay?scan=false", "Pay a UPI ID", GlanceModifier.defaultWeight().fillMaxHeight())
+            Spacer(GlanceModifier.width(6.dp))
+            BigAction("Receive", R.drawable.ic_shortcut_receive, "receive", "Show my UPI QR", GlanceModifier.defaultWeight().fillMaxHeight())
         }
     }
 }
@@ -413,16 +429,17 @@ private fun BigAction(label: String, icon: Int, route: String, description: Stri
         modifier.background(ImageProvider(R.drawable.widget_tile)).cornerRadius(16.dp).padding(6.dp).clickTo(openAction(route)),
         horizontalAlignment = Alignment.CenterHorizontally, verticalAlignment = Alignment.CenterVertically,
     ) {
-        Icon(icon, description, WidgetColors.brand, size = 34)
-        VSpace(4)
-        Label(label, size = 12.sp, bold = true, color = GlanceTheme.colors.onSurface)
+        Icon(icon, description, WidgetColors.brand, size = 30)
+        VSpace(3)
+        Label(label, size = 11.sp, bold = true, color = GlanceTheme.colors.onSurface)
     }
 }
 
 // ---------------------------------------------------------------- 9. My UPI QR (medium, large)
 
 class ReceiveQrWidget : GlanceAppWidget() {
-    override val sizeMode = SizeMode.Responsive(setOf(WidgetSizes.SMALL, WidgetSizes.LARGE))
+    /** One layout (the QR scales to the widget), so it never switches on its own. */
+    override val sizeMode = SizeMode.Single
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val m = widgetRepo(context).upiQr()
         provideContent { WidgetTheme { ReceiveQrContent(m) } }
@@ -447,11 +464,12 @@ fun ReceiveQrContent(m: UpiQrModel?) {
             else -> Column(GlanceModifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Label(m.name, size = 13.sp, bold = true, color = GlanceTheme.colors.onSurface)
                 VSpace(4)
-                val side = (minOf(LocalSize.current.width, LocalSize.current.height) - 64.dp).coerceAtLeast(64.dp)
                 androidx.glance.layout.Box(
-                    GlanceModifier.background(androidx.glance.unit.ColorProvider(androidx.compose.ui.graphics.Color.White)).cornerRadius(10.dp).padding(5.dp),
+                    GlanceModifier.defaultWeight().background(androidx.glance.unit.ColorProvider(androidx.compose.ui.graphics.Color.White)).cornerRadius(10.dp).padding(5.dp),
+                    contentAlignment = Alignment.Center,
                 ) {
-                    androidx.glance.Image(ImageProvider(qrWidgetBitmap(m.payload)), contentDescription = "UPI QR code for ${m.vpa}", modifier = GlanceModifier.size(side))
+                    androidx.glance.Image(ImageProvider(qrWidgetBitmap(m.payload)), contentDescription = "UPI QR code for ${m.vpa}",
+                        modifier = GlanceModifier.fillMaxHeight(), contentScale = androidx.glance.layout.ContentScale.Fit)
                 }
                 VSpace(4)
                 Label(m.vpa, size = 10.sp)
@@ -477,3 +495,4 @@ class BudgetReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget:
 class CreditCardReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = CreditCardWidget() }
 class ScanPayReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = ScanPayWidget() }
 class ReceiveQrReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = ReceiveQrWidget() }
+class PayReceiveReceiver : GlanceAppWidgetReceiver() { override val glanceAppWidget: GlanceAppWidget = PayReceiveWidget() }

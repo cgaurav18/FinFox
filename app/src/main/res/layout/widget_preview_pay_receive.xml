@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Widget-picker preview (Android 12+): the Pay & Receive bar. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@drawable/widget_background" android:gravity="center"
+    android:orientation="horizontal" android:padding="8dp">
+    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="center"
+        android:drawableTop="@drawable/ic_shortcut_scan" android:text="@string/shortcut_scan_short" android:textColor="#1B2623" android:textSize="11sp" android:textStyle="bold" />
+    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="center"
+        android:drawableTop="@drawable/ic_w_transfer" android:text="@string/widget_pay_upi_id" android:textColor="#1B2623" android:textSize="11sp" android:textStyle="bold" />
+    <TextView android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" android:gravity="center"
+        android:drawableTop="@drawable/ic_shortcut_receive" android:text="@string/shortcut_receive_short" android:textColor="#1B2623" android:textSize="11sp" android:textStyle="bold" />
+</LinearLayout>

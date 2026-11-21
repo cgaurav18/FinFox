@@ -10,6 +10,11 @@
     <string name="widget_desc_income_expense">This month\'s income, expenses and net savings</string>
     <string name="widget_desc_quick_actions">Add expense, income, transfer, or Scan &amp; Pay</string>
     <string name="widget_desc_scan_pay">One tap to scan a UPI QR and pay</string>
+    <string name="widget_desc_pay_receive">Scan &amp; Pay, Pay UPI ID and Receive in one bar</string>
+    <string name="widget_pay_upi_id">Pay UPI ID</string>
+    <string name="widget_label_scan_pay">Scan &amp; Pay</string>
+    <string name="widget_label_pay_receive">Pay &amp; Receive</string>
+    <string name="widget_label_receive_qr">My UPI QR</string>
     <string name="widget_desc_receive_qr">Your UPI QR so anyone can scan and pay you</string>
     <string name="widget_desc_upcoming">Upcoming EMI, SIP, bills and subscriptions</string>
     <string name="widget_desc_people">Money to receive and to pay</string>

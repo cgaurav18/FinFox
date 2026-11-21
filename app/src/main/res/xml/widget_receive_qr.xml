@@ -11,7 +11,8 @@
     android:maxResizeHeight="420dp"
     android:targetCellWidth="2"
     android:targetCellHeight="2"
-    android:previewImage="@drawable/ic_shortcut_receive"
+    android:previewImage="@drawable/finfox_logo"
+    android:previewLayout="@layout/widget_preview_receive_qr"
     android:resizeMode="horizontal|vertical"
     android:updatePeriodMillis="0"
     android:widgetCategory="home_screen" />

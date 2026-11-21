@@ -180,7 +180,7 @@
         <receiver
             android:name=".widgets.ScanPayReceiver"
             android:exported="true"
-            android:label="Scan &amp; Pay">
+            android:label="@string/widget_label_scan_pay">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
@@ -192,13 +192,25 @@
         <receiver
             android:name=".widgets.ReceiveQrReceiver"
             android:exported="true"
-            android:label="My UPI QR">
+            android:label="@string/widget_label_receive_qr">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/widget_receive_qr" />
+        </receiver>
+
+        <receiver
+            android:name=".widgets.PayReceiveReceiver"
+            android:exported="true"
+            android:label="@string/widget_label_pay_receive">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_pay_receive" />
         </receiver>
 
         <!-- "Remind later" / "Dismiss" notification buttons. Not exported: only our PendingIntents reach it. -->

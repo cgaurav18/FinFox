@@ -152,11 +152,25 @@ class WidgetTest {
         listOf("Scan a UPI QR and pay", "Add lending or borrowing entry").forEach { onNode(hasContentDescription(it)).assertExists() }
     }
 
-    @Test fun scanPayWidgetSmallAndWide() = runGlanceAppWidgetUnitTest {
+    @Test fun scanPayWidgetIsOneButtonAtEverySize() = runGlanceAppWidgetUnitTest {
         setContext(ctx)
         setAppWidgetSize(WidgetSizes.MEDIUM)
         provideComposable { WidgetTheme { ScanPayContent() } }
+        onNode(hasContentDescription("Scan a UPI QR and pay")).assertExists()
+        onNode(hasContentDescription("Show my UPI QR")).assertDoesNotExist()
+    }
+
+    @Test fun payReceiveBarHasAllThree() = runGlanceAppWidgetUnitTest {
+        setContext(ctx)
+        setAppWidgetSize(WidgetSizes.SMALL)
+        provideComposable { WidgetTheme { PayReceiveContent() } }
         listOf("Scan a UPI QR and pay", "Pay a UPI ID", "Show my UPI QR").forEach { onNode(hasContentDescription(it)).assertExists() }
+    }
+
+    @Test fun newWidgetsUseOneFixedLayout() {
+        assertThat(ScanPayWidget().sizeMode).isEqualTo(androidx.glance.appwidget.SizeMode.Single)
+        assertThat(PayReceiveWidget().sizeMode).isEqualTo(androidx.glance.appwidget.SizeMode.Single)
+        assertThat(ReceiveQrWidget().sizeMode).isEqualTo(androidx.glance.appwidget.SizeMode.Single)
     }
 
     @Test fun receiveQrWidgetShowsQrOrPrivacyNotice() = runGlanceAppWidgetUnitTest {

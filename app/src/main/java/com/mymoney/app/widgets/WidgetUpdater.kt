@@ -29,8 +29,9 @@ enum class WidgetKind(
 ) {
     TOTAL_BALANCE("Total Balance", "Available balance (bank + cash) with a hide/show toggle. Opens the dashboard.", "Small · Medium", TotalBalanceReceiver::class.java, WidgetSizes.MEDIUM),
     INCOME_EXPENSE("Income & Expenses", "This month's income, expenses, net savings and top spending. Opens Reports.", "Medium · Large", IncomeExpenseReceiver::class.java, WidgetSizes.LARGE),
-    SCAN_PAY("Scan & Pay", "One tap opens the QR scanner to pay any UPI QR. The wide size adds Pay UPI ID and Receive.", "Small · Medium", ScanPayReceiver::class.java, WidgetSizes.MEDIUM),
-    RECEIVE_QR("My UPI QR", "Your UPI ID as a QR code on the home screen, so anyone can scan and pay you. Hidden in privacy mode.", "Small · Large", ReceiveQrReceiver::class.java, WidgetSizes.LARGE),
+    SCAN_PAY("Scan & Pay", "One big button that opens the QR scanner to pay any UPI QR.", "1×1 · 2×1", ScanPayReceiver::class.java, WidgetSizes.SMALL),
+    PAY_RECEIVE("Pay & Receive", "Scan & Pay, Pay UPI ID and Receive side by side.", "3×1 · 4×1", PayReceiveReceiver::class.java, WidgetSizes.MEDIUM),
+    RECEIVE_QR("My UPI QR", "Your UPI ID as a QR code on the home screen, so anyone can scan and pay you. Hidden in privacy mode.", "2×2 and larger", ReceiveQrReceiver::class.java, WidgetSizes.LARGE),
     QUICK_ACTIONS("Quick Actions", "Add an expense, income or transfer, or Scan & Pay, in one tap (wide size adds lending).", "Small · Medium", QuickActionsReceiver::class.java, WidgetSizes.MEDIUM),
     UPCOMING("Upcoming Payments", "EMIs, SIPs, bills and subscriptions with due dates and overdue flags.", "Medium · Large", UpcomingPaymentsReceiver::class.java, WidgetSizes.LARGE),
     PEOPLE("Money with People", "What you'll receive and owe, with upcoming due dates.", "Medium · Large", MoneyWithPeopleReceiver::class.java, WidgetSizes.LARGE),
@@ -40,7 +41,7 @@ enum class WidgetKind(
     fun widget(): GlanceAppWidget = when (this) {
         TOTAL_BALANCE -> TotalBalanceWidget(); INCOME_EXPENSE -> IncomeExpenseWidget(); QUICK_ACTIONS -> QuickActionsWidget()
         UPCOMING -> UpcomingPaymentsWidget(); PEOPLE -> MoneyWithPeopleWidget(); BUDGET -> BudgetWidget(); CREDIT_CARDS -> CreditCardWidget()
-        SCAN_PAY -> ScanPayWidget(); RECEIVE_QR -> ReceiveQrWidget()
+        SCAN_PAY -> ScanPayWidget(); RECEIVE_QR -> ReceiveQrWidget(); PAY_RECEIVE -> PayReceiveWidget()
     }
 
     /** Loads live data and returns the widget's content (shared by real widgets and previews). */
@@ -53,6 +54,7 @@ enum class WidgetKind(
         BUDGET -> repo.budget().let { m -> { BudgetContent(m) } }
         CREDIT_CARDS -> repo.cards().let { m -> { CreditCardContent(m) } }
         SCAN_PAY -> { { ScanPayContent() } }
+        PAY_RECEIVE -> { { PayReceiveContent() } }
         RECEIVE_QR -> repo.upiQr().let { m -> { ReceiveQrContent(m) } }
     }
 
