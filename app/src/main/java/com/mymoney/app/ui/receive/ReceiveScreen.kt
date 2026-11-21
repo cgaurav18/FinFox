@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Label
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarOutline
@@ -83,6 +84,7 @@ fun ReceiveScreen(nav: NavController, vm: ReceiveViewModel = hiltViewModel()) {
     var adding by remember { mutableStateOf(false) }
     var removing by remember { mutableStateOf<MyUpiId?>(null) }
     val clipboard = LocalClipboardManager.current
+    val context = androidx.compose.ui.platform.LocalContext.current
     AppScaffold(title = "Receive money", onBack = { nav.popBackStack() }) { pad ->
         if (s.loading) { LoadingState(Modifier.padding(pad)); return@AppScaffold }
         Column(
@@ -101,6 +103,7 @@ fun ReceiveScreen(nav: NavController, vm: ReceiveViewModel = hiltViewModel()) {
                 s.ids.forEach { id -> FilterChip(selected = id.vpa == sel.vpa, onClick = { vm.select(id.vpa) }, label = { Text(id.label.ifBlank { id.vpa }) }) }
             }
             QrCard(sel, s.amountMinor, s.note, s.qrPayload.orEmpty()) { clipboard.setText(AnnotatedString(sel.vpa)) }
+            PrimaryButton("Share QR", onClick = { shareQr(context, sel, s.amountMinor, s.note, s.qrPayload.orEmpty()) }, icon = Icons.Filled.Share)
             AppCard {
                 Text("Ask for a specific amount (optional)", style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.height(8.dp))
@@ -183,4 +186,49 @@ internal fun qrBitmap(text: String, sizePx: Int): ImageBitmap {
     val m = QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
     val pixels = IntArray(m.width * m.height) { i -> if (m.get(i % m.width, i / m.width)) 0xFF000000.toInt() else 0xFFFFFFFF.toInt() }
     return Bitmap.createBitmap(pixels, m.width, m.height, Bitmap.Config.ARGB_8888).asImageBitmap()
+}
+
+/**
+ * Shares a "Pay me" card as a PNG: name, optional amount, the QR, the UPI ID. Written to the app cache and handed
+ * out read-only through the FileProvider; nothing leaves the phone unless the user picks an app to share with.
+ */
+internal fun shareQr(context: android.content.Context, id: MyUpiId, amountMinor: Long?, note: String, payload: String) {
+    val w = 1080; val h = 1400
+    val bmp = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+    val c = android.graphics.Canvas(bmp)
+    c.drawColor(0xFFFFFFFF.toInt())
+    val teal = 0xFF2E6F68.toInt(); val ink = 0xFF1B2623.toInt(); val muted = 0xFF5C6B66.toInt()
+    fun paint(size: Float, color: Int, bold: Boolean = false) = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+        textSize = size; this.color = color; textAlign = android.graphics.Paint.Align.CENTER
+        typeface = android.graphics.Typeface.create(android.graphics.Typeface.DEFAULT, if (bold) android.graphics.Typeface.BOLD else android.graphics.Typeface.NORMAL)
+    }
+    // Header band.
+    c.drawRect(0f, 0f, w.toFloat(), 150f, android.graphics.Paint().apply { color = teal })
+    c.drawText("Scan to pay with any UPI app", w / 2f, 95f, paint(44f, 0xFFFFFFFF.toInt(), bold = true))
+    var y = 250f
+    c.drawText(id.name, w / 2f, y, paint(64f, ink, bold = true))
+    if (amountMinor != null) { y += 85f; c.drawText(Money.format(amountMinor), w / 2f, y, paint(60f, teal, bold = true)) }
+    val qrSize = 780
+    val m = QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, qrSize, qrSize, mapOf(EncodeHintType.ERROR_CORRECTION to ErrorCorrectionLevel.M, EncodeHintType.MARGIN to 1, EncodeHintType.CHARACTER_SET to "UTF-8"))
+    val left = (w - m.width) / 2; val top = (y + 50f).toInt()
+    val black = android.graphics.Paint().apply { color = 0xFF000000.toInt() }
+    for (yy in 0 until m.height) for (xx in 0 until m.width) if (m.get(xx, yy)) c.drawPoint((left + xx).toFloat(), (top + yy).toFloat(), black)
+    y = top + m.height + 90f
+    c.drawText(id.vpa, w / 2f, y, paint(48f, ink))
+    if (note.isNotBlank()) { y += 70f; c.drawText(note.take(40), w / 2f, y, paint(40f, muted)) }
+    c.drawText("Made with FinFox", w / 2f, h - 50f, paint(32f, muted))
+
+    val dir = java.io.File(context.cacheDir, "shared").apply { mkdirs() }
+    val file = java.io.File(dir, "finfox-upi-qr.png")
+    file.outputStream().use { bmp.compress(Bitmap.CompressFormat.PNG, 100, it) }
+    val uri = androidx.core.content.FileProvider.getUriForFile(context, context.packageName + ".files", file)
+    val text = "Pay ${id.name} on UPI: ${id.vpa}" + (amountMinor?.let { " (" + Money.format(it) + ")" } ?: "")
+    val send = android.content.Intent(android.content.Intent.ACTION_SEND).apply {
+        type = "image/png"
+        putExtra(android.content.Intent.EXTRA_STREAM, uri)
+        putExtra(android.content.Intent.EXTRA_TEXT, text)
+        clipData = android.content.ClipData.newRawUri("UPI QR", uri)
+        addFlags(android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    context.startActivity(android.content.Intent.createChooser(send, "Share your UPI QR"))
 }

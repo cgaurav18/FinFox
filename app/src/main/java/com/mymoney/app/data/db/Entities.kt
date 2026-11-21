@@ -43,7 +43,7 @@ enum class ScheduleCategory(val label: String, val iconKey: String) {
 enum class ScheduleStatus { ACTIVE, PAUSED, COMPLETED }
 enum class OccurrenceStatus { PAID, SKIPPED }
 enum class LoanDirection { GAVE, RECEIVED }
-enum class ReminderRefType { SCHEDULE, LOAN, BUDGET, GOAL, CARD }
+enum class ReminderRefType { SCHEDULE, LOAN, BUDGET, GOAL, CARD, MONTH_SUMMARY, BUDGET_SETUP }
 enum class ThemeMode { SYSTEM, LIGHT, DARK }
 
 @Serializable

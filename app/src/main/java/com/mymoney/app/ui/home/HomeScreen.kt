@@ -132,6 +132,7 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
             }
         }
         item { MonthSummary(s, nav) }
+        item { BudgetGlance(s.budget, nav) }
         item { SavingsCard(s, nav) }
         if (s.monthData.slices.isNotEmpty()) item {
             AppCard {
@@ -268,6 +269,49 @@ private fun SavingsCard(s: HomeState, nav: NavController) {
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.primary)
             }
         }
+    }
+}
+
+/** This month's budgets in one line, or a nudge to set them. */
+@Composable
+private fun BudgetGlance(b: com.mymoney.app.domain.BudgetSummary?, nav: NavController) {
+    val fin = FinFoxTheme.colors
+    AppCard(onClick = { nav.navigate(Routes.BUDGETS) }, contentPadding = 14.dp) {
+        if (b == null) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconBadge(Icons.Filled.PieChart, MaterialTheme.colorScheme.primary, 36.dp)
+                Spacer(Modifier.width(12.dp))
+                Column(Modifier.weight(1f)) {
+                    Text("Set this month's budgets", style = MaterialTheme.typography.titleSmall)
+                    Text("See how much you can spend per day in each category.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+            return@AppCard
+        }
+        val color = when (b.status) {
+            com.mymoney.app.domain.BudgetStatus.ON_TRACK -> fin.income
+            com.mymoney.app.domain.BudgetStatus.AT_RISK -> fin.warning
+            com.mymoney.app.domain.BudgetStatus.OVER -> fin.expense
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Filled.PieChart, null, tint = color, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Budget", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+            Text("${b.usedPercent}% used", style = MaterialTheme.typography.labelLarge, color = color)
+        }
+        Spacer(Modifier.height(8.dp))
+        com.mymoney.app.ui.components.ProgressBar(b.totalSpentMinor.toFloat() / b.totalLimitMinor.coerceAtLeast(1), color, height = 6.dp)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            when {
+                b.finished -> if (b.remainingMinor >= 0) "Finished ${Money.format(b.remainingMinor)} under budget" else "Finished ${Money.format(-b.remainingMinor)} over budget"
+                b.remainingMinor < 0 -> "${Money.format(-b.remainingMinor)} over · ${b.over} ${if (b.over == 1) "category" else "categories"} over limit"
+                else -> "${Money.format(b.remainingMinor)} left · ${Money.format(b.perDayLeftMinor)}/day for ${b.daysLeft} days" +
+                    if (b.atRisk + b.over > 0) " · ${b.atRisk + b.over} need attention" else ""
+            },
+            style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

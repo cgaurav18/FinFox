@@ -117,7 +117,7 @@ class NotificationSystemTest {
         val bank = e.bank(opening = 1_000 * R)
         e.schedules.save(ScheduleInput(title = "Rent", category = ScheduleCategory.RENT, amountMinor = 100 * R, accountId = bank, start = today, frequency = Frequency.MONTHLY, nextDue = today, reminderDaysBefore = 0))
         prefs { it.copy(quietHoursEnabled = true, quietStartMinute = 9 * 60, quietEndMinute = 11 * 60) }
-        val engine = ReminderEngine(e.db, e.notifier)
+        val engine = ReminderEngine(e.db, e.notifier, monthly = false)
         assertThat(engine.run(today, LocalTime.of(10, 0))).isEqualTo(0)
         assertThat(engine.run(today, LocalTime.of(11, 30))).isEqualTo(1)
         assertThat(engine.run(today, LocalTime.of(15, 0))).isEqualTo(0) // duplicate prevention
@@ -127,7 +127,7 @@ class NotificationSystemTest {
         val bank = e.bank(opening = 1_000 * R)
         val id = e.schedules.save(ScheduleInput(title = "Netflix", category = ScheduleCategory.SUBSCRIPTION, amountMinor = 649 * R, accountId = bank, start = today, frequency = Frequency.MONTHLY, nextDue = today.plusDays(1), reminderDaysBefore = 1))
         var clock = Dates.nowMillis()
-        val engine = ReminderEngine(e.db, e.notifier) { clock }
+        val engine = ReminderEngine(e.db, e.notifier, monthly = false) { clock }
         assertThat(engine.run(today, LocalTime.of(10, 0))).isEqualTo(1)
         NotificationActionReceiver.snooze(ctx, e.db, ReminderRefType.SCHEDULE.name, id)
         assertThat(e.db.notificationDao().getState("SCHEDULE", id)!!.snoozedUntil).isGreaterThan(clock)
@@ -146,9 +146,9 @@ class NotificationSystemTest {
         e.schedules.save(ScheduleInput(title = "SIP", category = ScheduleCategory.SIP, amountMinor = 1, accountId = bank, start = today, frequency = Frequency.MONTHLY, nextDue = today, reminderDaysBefore = 0))
         e.loans.saveLoan(LoanInput(personName = "Ravi", direction = LoanDirection.RECEIVED, amountMinor = 500 * R, dateMillis = Dates.nowMillis(), due = today, accountId = bank, reminder = true))
         prefs { it.copy(paymentReminders = false, loanReminders = false) }
-        assertThat(ReminderEngine(e.db, e.notifier).run(today, LocalTime.of(12, 0))).isEqualTo(0)
+        assertThat(ReminderEngine(e.db, e.notifier, monthly = false).run(today, LocalTime.of(12, 0))).isEqualTo(0)
         prefs { it.copy(loanReminders = true) }
-        assertThat(ReminderEngine(e.db, e.notifier).run(today, LocalTime.of(12, 0))).isEqualTo(1)
+        assertThat(ReminderEngine(e.db, e.notifier, monthly = false).run(today, LocalTime.of(12, 0))).isEqualTo(1)
         assertThat(e.notifier.loans).hasSize(1)
     }
 
@@ -156,7 +156,7 @@ class NotificationSystemTest {
         val due = today.plusDays(1)
         val card = e.accounts.save(AccountInput(type = AccountType.CREDIT_CARD, name = "Amex", bankName = "American Express", openingMinor = 3_000 * R, creditLimitMinor = 50_000 * R, dueDay = due.dayOfMonth, colorArgb = 0, iconKey = "credit_card"))
         val g = e.goals.save(GoalInput(name = "Bike", targetMinor = 10_000 * R, targetDate = today.plusDays(5), colorArgb = 0))
-        val engine = ReminderEngine(e.db, e.notifier)
+        val engine = ReminderEngine(e.db, e.notifier, monthly = false)
         assertThat(engine.run(today, LocalTime.of(12, 0))).isEqualTo(2)
         assertThat(e.notifier.cards.single()).isEqualTo(card to ReminderEngine.nextDueDate(due.dayOfMonth, today))
         assertThat(e.notifier.goals.single()).isEqualTo(g to GoalAlert.TARGET_SOON)

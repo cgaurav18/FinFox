@@ -13,4 +13,12 @@
     <string name="widget_desc_people">Money to receive and to pay</string>
     <string name="widget_desc_budget">Monthly budget progress and overspending</string>
     <string name="widget_desc_credit_cards">Credit card outstanding and next due payment</string>
+    <string name="shortcut_scan_short">Scan &amp; Pay</string>
+    <string name="shortcut_scan_long">Scan a UPI QR and pay</string>
+    <string name="shortcut_receive_short">Receive</string>
+    <string name="shortcut_receive_long">Show my UPI QR</string>
+    <string name="shortcut_expense_short">Add expense</string>
+    <string name="shortcut_expense_long">Record an expense</string>
+    <string name="tile_scan">Scan &amp; Pay</string>
+    <string name="tile_receive">My UPI QR</string>
 </resources>

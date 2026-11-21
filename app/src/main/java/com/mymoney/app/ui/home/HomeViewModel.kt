@@ -61,6 +61,8 @@ data class HomeState(
     val monthData: MonthData = MonthData(),
     val loans: LoanTotals = LoanTotals(),
     val goals: GoalTotals = GoalTotals(),
+    /** This month's budgets at a glance; null when none are set. */
+    val budget: com.mymoney.app.domain.BudgetSummary? = null,
     val upcoming: List<ScheduleDetail> = emptyList(),
     val recent: List<TransactionDetail> = emptyList(),
     val today: LocalDate = LocalDate.now(),
@@ -76,6 +78,7 @@ class HomeViewModel @Inject constructor(
     private val settings: SettingsRepository,
     profiles: com.mymoney.app.data.repo.ProfileRepository,
     goals: com.mymoney.app.data.repo.GoalRepository,
+    budgets: com.mymoney.app.data.repo.BudgetRepository,
 ) : ViewModel() {
     val month = MutableStateFlow(YearMonth.now())
     /** Persisted "Hide balances" preference (Settings → Security), toggled by the eye on the balance card. */
@@ -106,6 +109,14 @@ class HomeViewModel @Inject constructor(
         GoalTotals(list.sumOf { it.savedMinor }, list.sumOf { it.goal.targetMinor }, list.size)
     }
 
+    private val budgetSummary = month.flatMapLatest { ym ->
+        budgets.observeMonth(ym).map { list ->
+            if (list.isEmpty()) null else com.mymoney.app.domain.BudgetInsights.summarize(
+                ym, list.associate { it.budget.categoryId to it.budget.limitMinor }, list.associate { it.budget.categoryId to it.spentMinor }, null, Dates.today(),
+            )
+        }
+    }
+
     private val upcoming = schedules.observeAll().map { list ->
         list.filter { it.schedule.status == ScheduleStatus.ACTIVE }.sortedBy { it.schedule.nextDueEpochDay }.take(4)
     }
@@ -113,10 +124,10 @@ class HomeViewModel @Inject constructor(
     val state: StateFlow<HomeState> = combine(
         combine(accounts.observeAccounts(false), settings.settings) { a, s -> Triple(AccountRepository.totals(a), a.size, s.profileName) },
         combine(month, monthData) { m, d -> m to d },
-        combine(loanTotals, goalTotals) { l, g -> l to g },
+        combine(loanTotals, goalTotals, budgetSummary) { l, g, b -> Triple(l, g, b) },
         upcoming,
         txns.observeRecent(6),
     ) { acc, md, lg, up, recent ->
-        HomeState(false, acc.third, acc.first, acc.second, md.first, md.second, lg.first, lg.second, up, recent, Dates.today())
+        HomeState(false, acc.third, acc.first, acc.second, md.first, md.second, lg.first, lg.second, lg.third, up, recent, Dates.today())
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), HomeState())
 }

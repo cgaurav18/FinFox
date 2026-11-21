@@ -316,7 +316,7 @@ class FinanceRepositoryTest {
         val bank = e.bank(opening = 1_000 * R)
         val today = Dates.today()
         val id = e.schedules.save(ScheduleInput(title = "Internet", category = ScheduleCategory.INTERNET, amountMinor = 700 * R, accountId = bank, start = today.plusDays(1), frequency = Frequency.MONTHLY, nextDue = today.plusDays(1), reminderDaysBefore = 1))
-        val engine = com.mymoney.app.notifications.ReminderEngine(e.db, e.notifier)
+        val engine = com.mymoney.app.notifications.ReminderEngine(e.db, e.notifier, monthly = false)
         assertThat(engine.run(today, java.time.LocalTime.of(10, 0))).isEqualTo(1)
         assertThat(engine.run(today, java.time.LocalTime.of(12, 0))).isEqualTo(0)
         assertThat(e.notifier.schedules).containsExactly(id to false)
