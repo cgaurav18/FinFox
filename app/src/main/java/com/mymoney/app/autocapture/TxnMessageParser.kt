@@ -78,6 +78,8 @@ object TxnMessageParser {
         """\b(?:a/c|ac|acct|account|card|a/c\s*no)\.?\s*(?:no\.?|number)?\s*(?:ending\s*(?:with|in)?\s*)?[x*]*\s*-?\s*([0-9]{3,4})\b""",
         RegexOption.IGNORE_CASE,
     )
+    /** "Amount credited to XX6101" (bank app notifications): masked account digits without an "A/c" word. */
+    private val maskedAccountRegex = Regex("""(?<![a-z0-9])[x*]{2,}\s*-?\s*([0-9]{3,4})\b""", RegexOption.IGNORE_CASE)
     private val vpaRegex = Regex("""\b([a-z0-9][a-z0-9._-]{1,63}@[a-z][a-z0-9]{1,30})\b""", RegexOption.IGNORE_CASE)
     private val refRegex = Regex(
         """(?:upi\s*ref(?:erence)?|ref(?:erence)?|rrn|utr|txn\s*id|transaction\s*id|upi)\s*(?:no\.?|number|id|#)?\s*[:.\-/ ]?\s*([0-9]{9,16})""",
@@ -97,6 +99,7 @@ object TxnMessageParser {
         Regex("""\bon\s+(?!\d)(.+?)(?:\s+avl\b|\s+via\b|\s+ref\b|\.\s|\.$|,|$)""", RegexOption.IGNORE_CASE),
     )
     private val creditPartyPatterns = listOf(
+        Regex("""^(.+?)\s+(?:has\s+)?(?:paid|sent|transferred)\s+you\b""", RegexOption.IGNORE_CASE),   // "Rahul Sharma paid you ₹100"
         Regex("""\b(?:received|credited)\b.*?\bfrom\s+(?:vpa\s+)?(.+?)(?:\s+on\b|\s+ref|\s+upi|\s+via\b|\.\s|\.$|,|\(|$)""", RegexOption.IGNORE_CASE),
         Regex("""\bby\s+(?:vpa\s+|a/c linked to vpa\s+)?(.+?)(?:\s+on\b|\s+ref|\s+upi|\s+via\b|\.\s|\.$|,|\(|$)""", RegexOption.IGNORE_CASE),
         Regex("""\bfrom\s+(?:vpa\s+)?(.+?)(?:\s+on\b|\s+ref|\s+upi|\s+via\b|\.\s|\.$|,|\(|$)""", RegexOption.IGNORE_CASE),
@@ -104,7 +107,7 @@ object TxnMessageParser {
 
     /** Words that show a captured "name" is really boilerplate, not a person or merchant. */
     private val junkParty = Regex(
-        """^(?:your|you|using|credit|debit|block|call|a/c|ac|acct|account|bank|card|the|upi|imps|neft|rtgs|mob|mobile|beneficiary|vpa|xx|\*|[x*]+\d+)\b|^\d|@?\bbank\b$""",
+        """^(?:view|details?|check|tap|here|your|you|using|credit|debit|block|call|a/c|ac|acct|account|bank|card|the|upi|imps|neft|rtgs|mob|mobile|beneficiary|vpa|xx|\*|[x*]+\d+)\b|^\d|@?\bbank\b$""",
         RegexOption.IGNORE_CASE,
     )
 
@@ -148,7 +151,8 @@ object TxnMessageParser {
         return ParsedTxn(
             direction = direction,
             amountMinor = amount,
-            accountLast4 = accMatch?.groupValues?.get(1),
+            accountLast4 = accMatch?.groupValues?.get(1)
+                ?: maskedAccountRegex.find(text.replace(upiCodeRefRegex, " "))?.groupValues?.get(1),
             isCard = isCard,
             isCreditCard = isCreditCard,
             counterparty = party,
@@ -159,7 +163,11 @@ object TxnMessageParser {
     }
 
     /** The earliest debit/credit keyword decides, e.g. "debited from A/c ... credited to VPA x" is a debit. */
+    /** "Rahul paid you ₹100" (Google Pay, PhonePe): "paid"/"sent" here mean money coming in. */
+    private val toYouRegex = Regex("""\b(?:has\s+)?(?:paid|sent|transferred)\s+you\b|\byou(?:'ve|\s+have)?\s+received\b""")
+
     private fun direction(lower: String): TxnDirection? {
+        if (toYouRegex.containsMatchIn(lower)) return TxnDirection.CREDIT
         fun firstIndex(words: List<String>) = words.mapNotNull { w ->
             Regex("""(?<![a-z])${Regex.escape(w)}(?![a-z])""").find(lower)?.range?.first
         }.minOrNull()

@@ -94,7 +94,11 @@ class CaptureRepository @Inject constructor(
         if (msg.source == SOURCE_SMS && !TxnMessageParser.isTrustedSmsSender(msg.sender)) return CaptureOutcome.NOT_A_TRANSACTION
         val parsed = TxnMessageParser.parse(msg.body) ?: return CaptureOutcome.NOT_A_TRANSACTION
         val textHash = hash(msg.body)
-        if (isDuplicate(msg, parsed, textHash)) return CaptureOutcome.DUPLICATE
+        if (isDuplicate(msg, parsed, textHash)) {
+            // The first report of this payment may have lacked the account (e.g. a bank app notification
+            // without digits) and been parked for review; this one can complete it.
+            return if (completePendingFrom(msg, parsed, prefs)) CaptureOutcome.ADDED else CaptureOutcome.DUPLICATE
+        }
 
         val type = if (parsed.direction == TxnDirection.DEBIT) TxnType.EXPENSE else TxnType.INCOME
         // Already typed in by hand (outside FinFox's own capture) a few minutes ago.
@@ -183,6 +187,8 @@ class CaptureRepository @Inject constructor(
             val window = if (p.kind == CaptureKind.CARD_BILL_PAYMENT || c.kind == CaptureKind.CARD_BILL_PAYMENT.name) billWindow else DUPLICATE_WINDOW_MS
             kotlin.math.abs(c.receivedAt - t) <= window &&
             c.direction != p.direction.name && c.amountMinor == p.amountMinor && c.accountLast4 != null &&
+                // Both halves naming the same account digits is money out and back on one account, not a transfer.
+                !last4Match(c.accountLast4, p.accountLast4) &&
                 c.suggestedAccountId != null && c.suggestedAccountId != accountId &&
                 (c.transactionId != null || c.kind == CaptureKind.CARD_BILL_PAYMENT.name)
         } ?: return null
@@ -205,6 +211,39 @@ class CaptureRepository @Inject constructor(
         }.getOrElse { if (it is FinanceException) null else throw it } ?: return null
         dao.update(other.copy(status = CaptureStatus.ADDED, transactionId = id, suggestedCategoryId = null))
         return id
+    }
+
+    /**
+     * A second report of a payment that is still waiting for review because its account was unknown: fill in
+     * the account (and reference) from this message and record it. Returns true when it was recorded.
+     */
+    private suspend fun completePendingFrom(msg: RawMessage, p: ParsedTxn, prefs: AutoCapturePreferencesEntity): Boolean {
+        if (p.accountLast4 == null || p.kind != CaptureKind.NORMAL || !prefs.autoAdd) return false
+        val t = msg.timestampMillis
+        val pending = dao.around(t - DUPLICATE_WINDOW_MS, t + DUPLICATE_WINDOW_MS).firstOrNull { c ->
+            c.status == CaptureStatus.PENDING && c.transactionId == null && c.kind == CaptureKind.NORMAL.name &&
+                c.direction == p.direction.name && c.amountMinor == p.amountMinor && c.source != msg.source &&
+                (c.accountLast4 == null || c.suggestedAccountId == null)
+        } ?: return false
+        val accountId = pending.suggestedAccountId ?: resolveAccount(p, null, prefs) ?: return false
+        val categoryId = pending.suggestedCategoryId ?: resolveCategory(p, msg.body) ?: return false
+        val type = if (p.direction == TxnDirection.DEBIT) TxnType.EXPENSE else TxnType.INCOME
+        val txnId = runCatching {
+            txns.save(
+                TxnInput(
+                    type = type, amountMinor = p.amountMinor, accountId = accountId, categoryId = categoryId, dateMillis = pending.receivedAt,
+                    merchant = (pending.counterparty ?: p.counterparty)?.take(60), note = noteFor(pending.source, false), tags = AUTO_TAG,
+                )
+            )
+        }.getOrElse { if (it is FinanceException) null else throw it } ?: return false
+        dao.update(
+            pending.copy(
+                status = CaptureStatus.ADDED, transactionId = txnId, accountLast4 = pending.accountLast4 ?: p.accountLast4,
+                refNo = pending.refNo ?: p.refNo, suggestedAccountId = accountId, suggestedCategoryId = categoryId,
+                counterparty = pending.counterparty ?: p.counterparty,
+            )
+        )
+        return true
     }
 
     private suspend fun isDuplicate(msg: RawMessage, p: ParsedTxn, textHash: String): Boolean {
