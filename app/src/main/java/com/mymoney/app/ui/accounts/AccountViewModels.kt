@@ -67,7 +67,7 @@ class AddAccountViewModel @Inject constructor(
     private val _form = MutableStateFlow(AccountForm(id = editId, type = initialType, loaded = editId == null, color = defaultColor(initialType)))
     val form: StateFlow<AccountForm> = _form.asStateFlow()
 
-    private fun defaultColor(t: AccountType) = when (t) { AccountType.BANK -> 0xFF5B0FA6; AccountType.CREDIT_CARD -> 0xFFFF7417; AccountType.CASH -> 0xFF0D9488 }
+    private fun defaultColor(t: AccountType) = when (t) { AccountType.BANK -> 0xFF2E6F68; AccountType.CREDIT_CARD -> 0xFF4F7CAC; AccountType.CASH -> 0xFFC98A3D }
 
     init {
         viewModelScope.launch {

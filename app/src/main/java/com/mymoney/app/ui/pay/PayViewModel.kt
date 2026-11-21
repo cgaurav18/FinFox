@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -74,6 +75,7 @@ class PayViewModel @Inject constructor(
     @ApplicationContext private val context: Context,
     private val handle: SavedStateHandle,
     private val capture: CaptureRepository,
+    private val appearance: com.mymoney.app.data.repo.AppearanceRepository,
     accounts: AccountRepository,
     categories: CategoryRepository,
     bus: MessageBus,
@@ -171,7 +173,13 @@ class PayViewModel @Inject constructor(
     suspend fun prepare(app: UpiApp): PayLaunch? {
         val (upi, amount) = validated() ?: return null
         lastApp = app.packageName
-        if (!upi.isMerchant) { _form.update { it.copy(handoff = Handoff(app, amount)) }; return null }
+        val mode = appearance.payMode.first()
+        val direct = when (mode) {
+            com.mymoney.app.data.repo.PayMode.DIRECT -> true
+            com.mymoney.app.data.repo.PayMode.COPY -> false
+            com.mymoney.app.data.repo.PayMode.AUTO -> upi.isMerchant
+        }
+        if (!direct) { _form.update { it.copy(handoff = Handoff(app, amount)) }; return null }
         startPending(upi, amount, app)
         return PayLaunch(Intent(Intent.ACTION_VIEW, Uri.parse(upi.toPayUri(amount, _form.value.note))).setPackage(app.packageName), handoff = false)
     }

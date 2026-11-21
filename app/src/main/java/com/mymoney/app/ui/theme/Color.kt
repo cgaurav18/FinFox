@@ -3,55 +3,62 @@ package com.mymoney.app.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * FinFox colour system. Every colour used by the UI is defined here; screens read them through
- * MaterialTheme.colorScheme or [FinFoxTheme.colors] — never as raw hex values.
+ * FinFox colour system: "Sage & Slate". A calm teal-sage brand on soft neutral surfaces, so the
+ * money colours (green income, red expense) are the only strong colours on screen.
+ *
+ * Every colour used by the UI is defined here; screens read them through MaterialTheme.colorScheme
+ * or [FinFoxTheme.colors], never as raw hex values.
  */
 object FinFoxPalette {
     // Brand
-    val PrimaryPurple = Color(0xFF5B0FA6)
-    val RoyalViolet = Color(0xFF7C20D9)
-    val FoxOrange = Color(0xFFFF7417)
-    val GoldenAmber = Color(0xFFFFB21C)
-    val DeepPlum = Color(0xFF25083F)
+    /** Deep teal-sage: filled buttons, selected states, links. */
+    val Primary = Color(0xFF2E6F68)
+    /** Lighter teal for gradients and secondary emphasis. */
+    val PrimaryBright = Color(0xFF3F8A82)
+    /** Muted amber: rare highlights only. */
+    val Accent = Color(0xFFC98A3D)
+    val Gold = Color(0xFFC9A227)
+    /** Deep slate-green ink: primary text in light mode, splash background. */
+    val Ink = Color(0xFF1B2623)
 
     // Light theme
-    val LightBackground = Color(0xFFF8F6FC)
+    val LightBackground = Color(0xFFF5F7F6)
     val LightCard = Color(0xFFFFFFFF)
-    val LightTextPrimary = Color(0xFF25083F)
-    val LightTextSecondary = Color(0xFF62576F)
-    val LightBorder = Color(0xFFE9E1F0)
+    val LightTextPrimary = Ink
+    val LightTextSecondary = Color(0xFF5C6B66)
+    val LightBorder = Color(0xFFE3E8E6)
 
     // Dark theme
-    val DarkBackground = Color(0xFF170B27)
-    val DarkCard = Color(0xFF2B1645)
-    val DarkTextPrimary = Color(0xFFFFFFFF)
-    val DarkTextSecondary = Color(0xFFC8B7D9)
-    val DarkBorder = Color(0xFF49305F)
-    /** Readable violet for text/icons on dark surfaces (Royal Violet itself is reserved for filled buttons). */
-    val DarkPrimaryText = Color(0xFFC9A6F7)
+    val DarkBackground = Color(0xFF101513)
+    val DarkCard = Color(0xFF182120)
+    val DarkTextPrimary = Color(0xFFE8EEEC)
+    val DarkTextSecondary = Color(0xFFA5B3AE)
+    val DarkBorder = Color(0xFF26302D)
+    /** Readable teal for text/icons on dark surfaces. */
+    val DarkPrimaryText = Color(0xFF8FD0C6)
 
-    // Financial status — identical hues in both themes.
-    val Income = Color(0xFF16A34A)
-    val Expense = Color(0xFFDC2626)
-    val Transfer = Color(0xFF2563EB)
-    val Upcoming = Color(0xFFD97706)
-    val Savings = Color(0xFF0D9488)
-    val Overdue = Color(0xFFB91C1C)
+    // Financial status: identical hues in both themes.
+    val Income = Color(0xFF1E9B5C)
+    val Expense = Color(0xFFCC3D3D)
+    val Transfer = Color(0xFF4F7CAC)
+    val Upcoming = Color(0xFFC7861C)
+    val Savings = Color(0xFF2A8C82)
+    val Overdue = Color(0xFFB83A35)
 
     /**
      * Lightened text variants of the status colours, used ONLY for amounts/labels drawn as text on dark
      * surfaces so they meet WCAG contrast. Icons, bars and chart fills keep the canonical colours.
      */
-    val IncomeOnDark = Color(0xFF4ADE80)
-    val ExpenseOnDark = Color(0xFFFF8A8A)
-    val TransferOnDark = Color(0xFF7FA8FF)
-    val UpcomingOnDark = Color(0xFFFBBF4D)
-    val SavingsOnDark = Color(0xFF3FD1C1)
-    val OverdueOnDark = Color(0xFFFF7A7A)
+    val IncomeOnDark = Color(0xFF5CD69A)
+    val ExpenseOnDark = Color(0xFFFF8F87)
+    val TransferOnDark = Color(0xFF8FB4E3)
+    val UpcomingOnDark = Color(0xFFF0C066)
+    val SavingsOnDark = Color(0xFF6FCFC2)
+    val OverdueOnDark = Color(0xFFFF7F78)
 
-    /** Premium gradient: dashboard balance card, splash, login header. */
-    val BrandGradient = listOf(DeepPlum, PrimaryPurple, RoyalViolet, FoxOrange)
+    /** Hero gradient (balance card, splash): a quiet two-tone teal. */
+    val BrandGradient = listOf(Color(0xFF245A54), Primary, Color(0xFF337870))
 
-    /** Accent palette for user categories/accounts (data colours, chosen by the user). */
+    /** Neutral data colour (e.g. "Others" slice). */
     val Neutral = Color(0xFF94A3B8)
 }

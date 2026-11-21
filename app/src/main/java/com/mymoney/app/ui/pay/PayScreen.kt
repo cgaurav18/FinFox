@@ -125,7 +125,7 @@ fun PayScreen(nav: NavController, vm: PayViewModel = hiltViewModel()) {
                     else "UPI apps don't let other apps start payments to people, so you'll pay inside ${h.app.label}. ") +
                         "FinFox copies the UPI ID ${f.upi?.pa ?: ""}: in ${h.app.label}, choose Pay UPI ID, paste it and pay " +
                         "${Money.format(h.amountMinor)} to $payee.\n\nFinFox records it under the category you chose when the bank SMS " +
-                        "or payment notification arrives, or when you confirm on your return.",
+                        "or payment notification arrives, or when you confirm on your return.\n\nChange how this works in Settings → Scan & Pay.",
                 )
             },
             confirmButton = {

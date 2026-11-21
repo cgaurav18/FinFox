@@ -3,6 +3,7 @@ package com.mymoney.app.ui.components
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
@@ -31,7 +32,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
@@ -79,13 +80,13 @@ fun AppScaffold(
 ) {
     Scaffold(
         topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            TopAppBar(
+                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.titleLarge) },
                 navigationIcon = {
                     if (onBack != null) IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") }
                 },
                 actions = actions,
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = MaterialTheme.colorScheme.background),
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.background, scrolledContainerColor = MaterialTheme.colorScheme.background),
             )
         },
         floatingActionButton = floatingActionButton,
@@ -109,14 +110,16 @@ fun AppCard(
     contentPadding: Dp = 16.dp,
     content: @Composable ColumnScope.() -> Unit,
 ) {
+    // Minimal look: flat cards with a hairline border instead of shadows.
     val colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)
-    val elevation = CardDefaults.cardElevation(defaultElevation = if (FinFoxTheme.colors.isDark) 0.dp else 1.dp)
+    val elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    val border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
     if (onClick != null) {
-        Card(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = colors, elevation = elevation) {
+        Card(onClick = onClick, modifier = modifier.fillMaxWidth(), shape = FinFoxShapes.card, colors = colors, elevation = elevation, border = border) {
             Column(Modifier.padding(contentPadding), content = content)
         }
     } else {
-        Card(modifier = modifier.fillMaxWidth(), shape = RoundedCornerShape(18.dp), colors = colors, elevation = elevation) {
+        Card(modifier = modifier.fillMaxWidth(), shape = FinFoxShapes.card, colors = colors, elevation = elevation, border = border) {
             Column(Modifier.padding(contentPadding), content = content)
         }
     }
@@ -125,7 +128,7 @@ fun AppCard(
 @Composable
 fun IconBadge(icon: ImageVector, color: Color, size: Dp = 42.dp, contentDescription: String? = null) {
     Box(
-        Modifier.size(size).clip(RoundedCornerShape(size / 3.2f)).background(color.copy(alpha = 0.14f)),
+        Modifier.size(size).clip(CircleShape).background(color.copy(alpha = 0.12f)),
         contentAlignment = Alignment.Center,
     ) { Icon(icon, contentDescription = contentDescription, tint = color, modifier = Modifier.size(size * 0.52f)) }
 }
@@ -146,17 +149,17 @@ fun MoneyText(
 @Composable
 fun SectionHeader(title: String, modifier: Modifier = Modifier, action: String? = null, onAction: (() -> Unit)? = null) {
     Row(modifier.fillMaxWidth().padding(top = 8.dp, bottom = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+        Text(title, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.weight(1f))
         if (action != null && onAction != null) TextButton(onClick = onAction) { Text(action) }
     }
 }
 
-/** Purple pill tabs as in the design: selected tab is filled, others are flat. */
+/** Segmented tabs: a soft track with the selected option raised on a white chip. */
 @Composable
 fun <T> PillTabs(options: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit, modifier: Modifier = Modifier, scrollable: Boolean = false) {
     val rowMod = if (scrollable) modifier.fillMaxWidth().horizontalScroll(rememberScrollState()) else modifier.fillMaxWidth()
     Row(
-        rowMod.clip(RoundedCornerShape(14.dp)).background(MaterialTheme.colorScheme.surface).padding(4.dp),
+        rowMod.clip(RoundedCornerShape(12.dp)).background(MaterialTheme.colorScheme.surfaceContainerHigh).padding(3.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         val fin = FinFoxTheme.colors
@@ -164,15 +167,15 @@ fun <T> PillTabs(options: List<T>, selected: T, label: (T) -> String, onSelect: 
             val isSel = o == selected
             val tabMod = if (scrollable) Modifier else Modifier.weight(1f)
             Box(
-                tabMod.clip(RoundedCornerShape(10.dp))
-                    .background(if (isSel) fin.primaryButton else Color.Transparent)
+                tabMod.clip(RoundedCornerShape(9.dp))
+                    .background(if (isSel) MaterialTheme.colorScheme.surface else Color.Transparent)
                     .clickable(role = Role.Tab) { onSelect(o) }
                     .padding(horizontal = if (scrollable) 14.dp else 6.dp, vertical = 9.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
                     label(o), style = MaterialTheme.typography.labelLarge, maxLines = 1,
-                    color = if (isSel) fin.onPrimaryButton else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }
@@ -205,7 +208,7 @@ fun PrimaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifi
     }
 }
 
-/** Light-purple secondary button; [destructive] makes it a red button for irreversible actions. */
+/** Soft tinted secondary button; [destructive] makes it a red button for irreversible actions. */
 @Composable
 fun SecondaryButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, icon: ImageVector? = null, destructive: Boolean = false, enabled: Boolean = true) {
     val fin = FinFoxTheme.colors
@@ -239,8 +242,8 @@ fun TonalButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier
 @Composable
 fun EmptyState(icon: ImageVector, title: String, subtitle: String, modifier: Modifier = Modifier, action: String? = null, onAction: (() -> Unit)? = null) {
     Column(modifier.fillMaxWidth().padding(vertical = 40.dp, horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(84.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
-            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(40.dp))
+        Box(Modifier.size(64.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primaryContainer), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(30.dp))
         }
         Spacer(Modifier.height(16.dp))
         Text(title, style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)

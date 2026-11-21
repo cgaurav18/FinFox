@@ -105,35 +105,18 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
     LazyColumn(
         Modifier.widthIn(max = com.mymoney.app.ui.components.MaxContentWidth).fillMaxSize().statusBarsPadding(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 32.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item { Header(s.name, null, unread, { nav.navigate(Routes.NOTIFICATIONS) }) { nav.navigate(Routes.SETTINGS) } }
         if (profile.driveConnected && profile.driveNeedsReauth) item {
-            AppCard(onClick = { nav.navigate(Routes.BACKUP) }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.CloudOff, null, tint = MaterialTheme.colorScheme.error)
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Reconnect Google Drive", style = MaterialTheme.typography.titleSmall)
-                        Text("Automatic backups are paused because Google needs your permission again.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
+            Notice(Icons.Filled.CloudOff, MaterialTheme.colorScheme.error, "Reconnect Google Drive", "Automatic backups are paused until you allow access again.") { nav.navigate(Routes.BACKUP) }
+        }
+        if (capturePending > 0) item {
+            Notice(Icons.Filled.AutoAwesome, MaterialTheme.colorScheme.primary,
+                "$capturePending captured ${if (capturePending == 1) "payment needs" else "payments need"} review",
+                "Confirm the account and category to add ${if (capturePending == 1) "it" else "them"}.") { nav.navigate(Routes.AUTO_CAPTURE) }
         }
         item { BalanceCard(s, hidden, vm::toggleHidden) { nav.navigate(Routes.ACCOUNTS) } }
-        item { ScanPayCard(nav) }
-        if (capturePending > 0) item {
-            AppCard(onClick = { nav.navigate(Routes.AUTO_CAPTURE) }) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Filled.AutoAwesome, null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("$capturePending captured ${if (capturePending == 1) "payment needs" else "payments need"} review", style = MaterialTheme.typography.titleSmall)
-                        Text("Confirm the account and category to add them.", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-            }
-        }
         item { QuickActions(nav) }
         if (s.accountCount == 0) item {
             AppCard { EmptyState(Icons.Filled.AccountBalance, "Add your first account", "Add a bank account, credit card or cash wallet to start tracking.", action = "Add account") { nav.navigate(Routes.accountEdit()) } }
@@ -144,81 +127,112 @@ fun HomeScreen(nav: NavController, vm: HomeViewModel = hiltViewModel()) {
                 MonthSelector(s.month, { vm.month.value = it }, allowFuture = false)
             }
         }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                StatTile("Income", s.monthData.income, fin.income, Icons.Filled.ArrowDownward, Modifier.weight(1f)) { nav.navigate(Routes.txns(TxnType.INCOME.name)) }
-                StatTile("Expenses", s.monthData.expense, fin.expense, Icons.Filled.ArrowUpward, Modifier.weight(1f)) { nav.navigate(Routes.txns(TxnType.EXPENSE.name)) }
-            }
-        }
-        item {
-            AppCard(contentPadding = 14.dp) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconBadge(Icons.Filled.Savings, MaterialTheme.colorScheme.primary, 34.dp)
-                    Spacer(Modifier.width(10.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Net savings", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        MoneyText(s.monthData.net, color = if (s.monthData.net >= 0) fin.income else fin.expense, signed = true)
-                    }
-                    if (s.monthData.income > 0) Text("${Money.percent(s.monthData.net.coerceAtLeast(0), s.monthData.income)}% saved", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                }
-            }
-        }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                LoanTile("To receive", s.loans.lent, s.loans.lentOverdue, fin.income, Icons.AutoMirrored.Filled.CallReceived, Modifier.weight(1f)) { nav.navigate(Routes.PEOPLE) }
-                LoanTile("To pay", s.loans.borrowed, s.loans.borrowedOverdue, fin.expense, Icons.AutoMirrored.Filled.CallMade, Modifier.weight(1f)) { nav.navigate(Routes.PEOPLE) }
-            }
-        }
-        item { SectionHeader("Upcoming payments", action = "View all") { nav.navigate(Routes.SCHEDULES) } }
-        item {
-            AppCard(contentPadding = 0.dp) {
-                if (s.upcoming.isEmpty()) {
-                    Text("No scheduled payments. Add EMIs, SIPs and bills to get reminders.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
-                } else s.upcoming.forEach { UpcomingRow(it, s.today) { nav.navigate(Routes.scheduleDetail(it.schedule.id)) } }
-            }
-        }
-        item {
-            AppCard {
-                Text("Income vs expenses", style = MaterialTheme.typography.titleSmall)
-                Text("Last 6 months", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Spacer(Modifier.height(12.dp))
-                IncomeExpenseBarChart(s.monthData.sixMonths)
-            }
-        }
+        item { MonthSummary(s, nav) }
         if (s.monthData.slices.isNotEmpty()) item {
             AppCard {
-                Text("Spending by category", style = MaterialTheme.typography.titleSmall)
+                Text("Where your money went", style = MaterialTheme.typography.titleSmall)
                 Spacer(Modifier.height(12.dp))
                 DonutChart(s.monthData.slices, "Expenses", s.monthData.expense)
             }
         }
-        item { SectionHeader("Recent transactions", action = "View all") { nav.navigate(Routes.txns()) } }
+        item { SectionHeader("Recent transactions", action = "See all") { nav.navigate(Routes.txns()) } }
         item {
             AppCard(contentPadding = 0.dp) {
                 if (s.recent.isEmpty()) EmptyState(Icons.Filled.ReceiptLong, "No transactions yet", "Tap + to record your first income or expense.")
                 else s.recent.forEach { TxnRow(it, { nav.navigate(Routes.txnDetail(it.txn.id)) }) }
             }
         }
+        if (s.upcoming.isNotEmpty()) {
+            item { SectionHeader("Upcoming payments", action = "See all") { nav.navigate(Routes.SCHEDULES) } }
+            item { AppCard(contentPadding = 0.dp) { s.upcoming.forEach { UpcomingRow(it, s.today) { nav.navigate(Routes.scheduleDetail(it.schedule.id)) } } } }
+        }
+        if (s.loans.lent > 0 || s.loans.borrowed > 0) {
+            item { SectionHeader("Money with people", action = "See all") { nav.navigate(Routes.PEOPLE) } }
+            item {
+                AppCard(onClick = { nav.navigate(Routes.PEOPLE) }) {
+                    Row {
+                        LoanPart("To receive", s.loans.lent, s.loans.lentOverdue, fin.income, Modifier.weight(1f))
+                        LoanPart("To pay", s.loans.borrowed, s.loans.borrowedOverdue, fin.expense, Modifier.weight(1f))
+                    }
+                }
+            }
+        }
     }
+    }
+}
+
+/** A one-line alert card (backup paused, payments to review). */
+@Composable
+private fun Notice(icon: ImageVector, color: Color, title: String, subtitle: String, onClick: () -> Unit) {
+    AppCard(onClick = onClick, contentPadding = 14.dp) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            IconBadge(icon, color, 36.dp)
+            Spacer(Modifier.width(12.dp))
+            Column(Modifier.weight(1f)) {
+                Text(title, style = MaterialTheme.typography.titleSmall)
+                Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** Income, expenses and what's left this month, with how much of the income has been spent. */
+@Composable
+private fun MonthSummary(s: HomeState, nav: NavController) {
+    val fin = FinFoxTheme.colors
+    val d = s.monthData
+    AppCard {
+        Row {
+            SummaryPart("Income", d.income, fin.income, Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { nav.navigate(Routes.txns(TxnType.INCOME.name)) })
+            SummaryPart("Expenses", d.expense, fin.expense, Modifier.weight(1f).clip(RoundedCornerShape(10.dp)).clickable { nav.navigate(Routes.txns(TxnType.EXPENSE.name)) })
+            SummaryPart("Left", d.net, if (d.net >= 0) MaterialTheme.colorScheme.onSurface else fin.expense, Modifier.weight(1f))
+        }
+        if (d.income > 0) {
+            Spacer(Modifier.height(14.dp))
+            val spent = (d.expense.toFloat() / d.income).coerceIn(0f, 1f)
+            com.mymoney.app.ui.components.ProgressBar(spent, if (d.expense > d.income) fin.expense else MaterialTheme.colorScheme.primary, height = 6.dp)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                if (d.expense > d.income) "You spent more than you earned this month"
+                else "${Money.percent(d.expense, d.income)}% of income spent · ${Money.percent(d.net.coerceAtLeast(0), d.income)}% saved",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SummaryPart(label: String, amount: Long, color: Color, modifier: Modifier) {
+    Column(modifier.padding(vertical = 2.dp)) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Spacer(Modifier.height(2.dp))
+        MoneyText(amount, style = MaterialTheme.typography.titleMedium, color = color)
+    }
+}
+
+@Composable
+private fun LoanPart(label: String, amount: Long, overdue: Long, color: Color, modifier: Modifier) {
+    Column(modifier) {
+        Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        MoneyText(amount, style = MaterialTheme.typography.titleMedium, color = color)
+        if (overdue > 0) Text("${Money.format(overdue, LocalCurrency.current)} overdue", style = MaterialTheme.typography.labelSmall, color = FinFoxTheme.colors.expense)
     }
 }
 
 @Composable
 private fun Header(name: String, photoUrl: String?, unread: Int, onNotifications: () -> Unit, onProfile: () -> Unit) {
     Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-        com.mymoney.app.ui.auth.AppLogo(44.dp)
-        Spacer(Modifier.width(10.dp))
         Column(Modifier.weight(1f)) {
-            Text("FinFox", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-            Text(greeting() + if (name.isNotBlank()) ", ${name.substringBefore(' ')}" else "", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(greeting(), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(name.substringBefore(' ').ifBlank { "Welcome" }, style = MaterialTheme.typography.titleLarge)
         }
         IconButton(onClick = onNotifications) {
             BadgedBox(badge = { if (unread > 0) Badge { Text(if (unread > 99) "99+" else unread.toString()) } }) {
-                Icon(Icons.Filled.Notifications, if (unread > 0) "Notifications, $unread unread" else "Notifications")
+                Icon(Icons.Filled.Notifications, if (unread > 0) "Notifications, $unread unread" else "Notifications", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
         Spacer(Modifier.width(4.dp))
-        Box(Modifier.clip(CircleShape).clickable(onClick = onProfile)) { com.mymoney.app.ui.account.Avatar(photoUrl, name, 42.dp) }
+        Box(Modifier.clip(CircleShape).clickable(onClick = onProfile)) { com.mymoney.app.ui.account.Avatar(photoUrl, name, 40.dp) }
     }
 }
 
@@ -234,7 +248,7 @@ private fun BalanceCard(s: HomeState, hidden: Boolean, onToggle: () -> Unit, onC
         Modifier.fillMaxWidth().clip(com.mymoney.app.ui.theme.FinFoxShapes.heroCard).background(FinFoxTheme.colors.headerGradient).clickable(onClick = onClick).padding(20.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Total available balance", color = onG.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
+            Text("Total balance", color = onG.copy(alpha = 0.85f), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = onToggle, modifier = Modifier.size(32.dp)) {
                 Icon(if (hidden) Icons.Filled.VisibilityOff else Icons.Filled.Visibility, if (hidden) "Show balance" else "Hide balance", tint = onG)
             }
@@ -243,8 +257,7 @@ private fun BalanceCard(s: HomeState, hidden: Boolean, onToggle: () -> Unit, onC
             modifier = Modifier.semantics { contentDescription = if (hidden) "Balance hidden" else "Total available balance ${Money.format(s.totals.availableMinor, currency)}" })
         Text("Bank + cash. Credit limits aren't counted.", color = onG.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
         Spacer(Modifier.height(16.dp))
-        // Plum scrim keeps white text readable where the gradient turns orange.
-        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).background(com.mymoney.app.ui.theme.FinFoxPalette.DeepPlum.copy(alpha = 0.32f)).padding(12.dp)) {
+        Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.12f)).padding(12.dp)) {
             BalancePart("Bank", fmt(s.totals.bankMinor), Icons.Filled.AccountBalance, Modifier.weight(1f))
             BalancePart("Cash", fmt(s.totals.cashMinor), Icons.Filled.AccountBalanceWallet, Modifier.weight(1f))
             BalancePart("Card due", fmt(s.totals.creditOutstandingMinor), Icons.Filled.CreditCard, Modifier.weight(1f))
@@ -277,63 +290,26 @@ private fun BalancePart(label: String, value: String, icon: ImageVector, modifie
     }
 }
 
-/** Scan a UPI QR (or pay a UPI ID) and let FinFox record the payment. */
-@Composable
-private fun ScanPayCard(nav: NavController) {
-    AppCard(contentPadding = 12.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            com.mymoney.app.ui.components.PrimaryButton(
-                "Scan & Pay", onClick = { nav.navigate(Routes.pay(scan = true)) }, modifier = Modifier.weight(1f), icon = Icons.Filled.QrCodeScanner,
-            )
-            Spacer(Modifier.width(8.dp))
-            com.mymoney.app.ui.components.TonalButton(
-                "UPI ID", onClick = { nav.navigate(Routes.pay(scan = false)) }, modifier = Modifier.weight(0.6f), icon = Icons.Filled.AlternateEmail,
-            )
-        }
-    }
-}
-
 private data class QA(val label: String, val icon: ImageVector, val color: Color, val route: String)
 
+/** The four things people do most: record an expense, record income, move money, pay by UPI. */
 @Composable
 private fun QuickActions(nav: NavController) {
     val fin = FinFoxTheme.colors
     val actions = listOf(
-        QA("Add Expense", Icons.Filled.ArrowUpward, fin.expense, Routes.txnEdit(type = TxnType.EXPENSE.name)),
-        QA("Add Income", Icons.Filled.ArrowDownward, fin.income, Routes.txnEdit(type = TxnType.INCOME.name)),
-        QA("Transfer Money", Icons.Filled.SwapHoriz, fin.transfer, Routes.txnEdit(type = TxnType.TRANSFER.name)),
-        QA("Accounts", Icons.Filled.AddCard, MaterialTheme.colorScheme.primary, Routes.ACCOUNTS),
-        QA("Scheduled Payments", Icons.Filled.EventRepeat, fin.warning, Routes.SCHEDULES),
-        QA("Give / Receive", Icons.Filled.Groups, fin.accent, Routes.PEOPLE),
+        QA("Expense", Icons.Filled.ArrowUpward, fin.expense, Routes.txnEdit(type = TxnType.EXPENSE.name)),
+        QA("Income", Icons.Filled.ArrowDownward, fin.income, Routes.txnEdit(type = TxnType.INCOME.name)),
+        QA("Transfer", Icons.Filled.SwapHoriz, fin.transfer, Routes.txnEdit(type = TxnType.TRANSFER.name)),
+        QA("Scan & Pay", Icons.Filled.QrCodeScanner, MaterialTheme.colorScheme.primary, Routes.pay(scan = true)),
     )
-    AppCard(contentPadding = 8.dp) {
-        actions.chunked(3).forEach { row ->
-            Row(Modifier.fillMaxWidth()) {
-                row.forEach { a ->
-                    Column(
-                        Modifier.weight(1f).clip(RoundedCornerShape(12.dp)).clickable { nav.navigate(a.route) }.padding(vertical = 10.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        IconBadge(a.icon, a.color, 44.dp)
-                        Spacer(Modifier.height(6.dp))
-                        Text(a.label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                    }
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        actions.forEach { a ->
+            AppCard(Modifier.weight(1f), onClick = { nav.navigate(a.route) }, contentPadding = 10.dp) {
+                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
+                    IconBadge(a.icon, a.color, 38.dp)
+                    Spacer(Modifier.height(6.dp))
+                    Text(a.label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 1, overflow = TextOverflow.Ellipsis)
                 }
-            }
-        }
-    }
-}
-
-@Composable
-private fun LoanTile(label: String, amount: Long, overdue: Long, color: Color, icon: ImageVector, modifier: Modifier, onClick: () -> Unit) {
-    AppCard(modifier, onClick = onClick, contentPadding = 12.dp) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            IconBadge(icon, color, 34.dp)
-            Spacer(Modifier.width(10.dp))
-            Column {
-                Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                MoneyText(amount, style = MaterialTheme.typography.titleSmall)
-                if (overdue > 0) Text("${Money.format(overdue, LocalCurrency.current)} overdue", style = MaterialTheme.typography.labelSmall, color = FinFoxTheme.colors.expense)
             }
         }
     }

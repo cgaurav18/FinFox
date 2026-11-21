@@ -43,7 +43,7 @@ object Reports {
         }.sortedByDescending { it.valueMinor }
     }
 
-    private val accountPalette = listOf(0xFF5B0FA6, 0xFFFF7417, 0xFF0D9488, 0xFF2563EB, 0xFF7C20D9, 0xFFFFB21C, 0xFFDB2777, 0xFF64748B) // FinFox brand first
+    private val accountPalette = listOf(0xFF2E6F68, 0xFF4F7CAC, 0xFFC98A3D, 0xFF8A6FB0, 0xFF5E9C5A, 0xFFB46A8C, 0xFF4E9AA8, 0xFF64748B) // FinFox brand first
 
     fun accountSpending(txns: List<TransactionDetail>): List<Slice> {
         val filtered = txns.filter { it.txn.type == TxnType.EXPENSE }

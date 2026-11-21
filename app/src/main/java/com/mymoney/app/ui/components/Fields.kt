@@ -67,7 +67,7 @@ import java.time.ZoneOffset
 
 private val fieldShape = com.mymoney.app.ui.theme.FinFoxShapes.input
 
-/** FinFox input colours: surface fill, purple focus indicator/label/cursor, red errors. */
+/** FinFox input colours: surface fill, teal focus indicator/label/cursor, red errors. */
 @Composable
 private fun finFoxFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedContainerColor = MaterialTheme.colorScheme.surface, focusedContainerColor = MaterialTheme.colorScheme.surface,

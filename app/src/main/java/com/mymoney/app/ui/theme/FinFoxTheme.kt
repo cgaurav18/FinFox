@@ -37,39 +37,38 @@ import com.mymoney.app.ui.theme.FinFoxPalette as P
 // ---------------------------------------------------------------- Material 3 colour schemes
 
 internal val LightColors: ColorScheme = lightColorScheme(
-    primary = P.PrimaryPurple, onPrimary = Color.White,
-    primaryContainer = Color(0xFFEFE4FB), onPrimaryContainer = P.DeepPlum,
-    secondary = P.RoyalViolet, onSecondary = Color.White,
-    secondaryContainer = Color(0xFFF1E8FC), onSecondaryContainer = P.DeepPlum,
-    tertiary = P.FoxOrange, onTertiary = Color.White,
-    tertiaryContainer = Color(0xFFFFE8D9), onTertiaryContainer = Color(0xFF5A2300),
+    primary = P.Primary, onPrimary = Color.White,
+    primaryContainer = Color(0xFFDDEDEA), onPrimaryContainer = Color(0xFF0F3B35),
+    secondary = P.PrimaryBright, onSecondary = Color.White,
+    secondaryContainer = Color(0xFFE6F0EE), onSecondaryContainer = Color(0xFF0F3B35),
+    tertiary = P.Accent, onTertiary = Color.White,
+    tertiaryContainer = Color(0xFFF8EAD9), onTertiaryContainer = Color(0xFF5A3A12),
     background = P.LightBackground, onBackground = P.LightTextPrimary,
     surface = P.LightCard, onSurface = P.LightTextPrimary,
-    surfaceVariant = Color(0xFFF2EDF8), onSurfaceVariant = P.LightTextSecondary,
-    surfaceContainerLowest = P.LightCard, surfaceContainerLow = Color(0xFFFCFAFE),
-    surfaceContainer = Color(0xFFF5F1FA), surfaceContainerHigh = Color(0xFFF0EAF7), surfaceContainerHighest = Color(0xFFEAE3F3),
+    surfaceVariant = Color(0xFFEEF2F0), onSurfaceVariant = P.LightTextSecondary,
+    surfaceContainerLowest = P.LightCard, surfaceContainerLow = Color(0xFFFAFBFA),
+    surfaceContainer = Color(0xFFF3F6F5), surfaceContainerHigh = Color(0xFFEDF1EF), surfaceContainerHighest = Color(0xFFE7ECEA),
     // outline is used for input borders (needs ≥3:1); outlineVariant is the subtle card/divider border.
-    outline = Color(0xFF8E80A0), outlineVariant = P.LightBorder,
-    error = P.Expense, onError = Color.White, errorContainer = Color(0xFFFDE2E2), onErrorContainer = P.Overdue,
-    inverseSurface = P.DeepPlum, inverseOnSurface = Color.White, inversePrimary = P.DarkPrimaryText,
+    outline = Color(0xFF8A9893), outlineVariant = P.LightBorder,
+    error = P.Expense, onError = Color.White, errorContainer = Color(0xFFFBE3E2), onErrorContainer = P.Overdue,
+    inverseSurface = P.Ink, inverseOnSurface = Color.White, inversePrimary = P.DarkPrimaryText,
 )
 
 internal val DarkColors: ColorScheme = darkColorScheme(
-    // Text-coloured "primary" uses a light violet for contrast; filled buttons use Royal Violet (see primaryButton).
-    primary = P.DarkPrimaryText, onPrimary = P.DeepPlum,
-    primaryContainer = Color(0xFF3D1A66), onPrimaryContainer = Color(0xFFEFE2FF),
-    secondary = P.FoxOrange, onSecondary = P.DeepPlum,
-    secondaryContainer = Color(0xFF4A2340), onSecondaryContainer = Color(0xFFFFE0CC),
-    tertiary = P.GoldenAmber, onTertiary = P.DeepPlum,
-    tertiaryContainer = Color(0xFF4A3410), onTertiaryContainer = Color(0xFFFFE6B3),
+    primary = P.DarkPrimaryText, onPrimary = Color(0xFF0B2A26),
+    primaryContainer = Color(0xFF1F3F3A), onPrimaryContainer = Color(0xFFCDEBE5),
+    secondary = P.DarkPrimaryText, onSecondary = Color(0xFF0B2A26),
+    secondaryContainer = Color(0xFF22312E), onSecondaryContainer = Color(0xFFCDEBE5),
+    tertiary = Color(0xFFE3B072), onTertiary = Color(0xFF3D2E19),
+    tertiaryContainer = Color(0xFF3D2E19), onTertiaryContainer = Color(0xFFF7DFC0),
     background = P.DarkBackground, onBackground = P.DarkTextPrimary,
     surface = P.DarkCard, onSurface = P.DarkTextPrimary,
-    surfaceVariant = Color(0xFF36204F), onSurfaceVariant = P.DarkTextSecondary,
-    surfaceContainerLowest = Color(0xFF120820), surfaceContainerLow = Color(0xFF221136),
-    surfaceContainer = P.DarkCard, surfaceContainerHigh = Color(0xFF331B50), surfaceContainerHighest = Color(0xFF3B2259),
-    outline = Color(0xFF8C74A3), outlineVariant = P.DarkBorder,
-    error = P.ExpenseOnDark, onError = P.DeepPlum, errorContainer = Color(0xFF4B1620), onErrorContainer = Color(0xFFFFD6D6),
-    inverseSurface = Color(0xFFF1EAF9), inverseOnSurface = P.DeepPlum, inversePrimary = P.PrimaryPurple,
+    surfaceVariant = Color(0xFF212B29), onSurfaceVariant = P.DarkTextSecondary,
+    surfaceContainerLowest = Color(0xFF0B0F0E), surfaceContainerLow = Color(0xFF141B19),
+    surfaceContainer = P.DarkCard, surfaceContainerHigh = Color(0xFF1F2927), surfaceContainerHighest = Color(0xFF26312F),
+    outline = Color(0xFF6F7D78), outlineVariant = P.DarkBorder,
+    error = P.ExpenseOnDark, onError = Color(0xFF3A0D0B), errorContainer = Color(0xFF4A1A18), onErrorContainer = Color(0xFFFFDAD6),
+    inverseSurface = P.DarkTextPrimary, inverseOnSurface = P.Ink, inversePrimary = P.Primary,
 )
 
 // ---------------------------------------------------------------- FinFox tokens beyond Material
@@ -98,25 +97,25 @@ data class FinFoxColors(
     val isDark: Boolean,
 )
 
-/** Brand gradient; orange is kept to the far corner so white text on the card stays readable. */
-val BrandBrush = Brush.linearGradient(0f to P.DeepPlum, 0.38f to P.PrimaryPurple, 0.78f to P.RoyalViolet, 1f to P.FoxOrange)
+/** Hero gradient: a quiet two-tone teal (white text stays readable across it). */
+val BrandBrush = Brush.linearGradient(P.BrandGradient)
 
 val LightFinFoxColors = FinFoxColors(
     income = P.Income, expense = P.Expense, transfer = P.Transfer, warning = P.Upcoming, savings = P.Savings, overdue = P.Overdue,
-    incomeContainer = Color(0xFFDCFCE7), expenseContainer = Color(0xFFFEE2E2),
-    primaryButton = P.PrimaryPurple, onPrimaryButton = Color.White,
-    secondaryButton = Color(0xFFEFE4FB), onSecondaryButton = P.PrimaryPurple,
-    selectedNav = P.RoyalViolet, accent = P.FoxOrange, gold = P.GoldenAmber, border = P.LightBorder,
+    incomeContainer = Color(0xFFDDF3E6), expenseContainer = Color(0xFFFBE3E2),
+    primaryButton = P.Primary, onPrimaryButton = Color.White,
+    secondaryButton = Color(0xFFE3EFEC), onSecondaryButton = P.Primary,
+    selectedNav = P.Primary, accent = P.Accent, gold = P.Gold, border = P.LightBorder,
     headerGradient = BrandBrush, onGradient = Color.White, isDark = false,
 )
 
 val DarkFinFoxColors = FinFoxColors(
     income = P.IncomeOnDark, expense = P.ExpenseOnDark, transfer = P.TransferOnDark, warning = P.UpcomingOnDark,
     savings = P.SavingsOnDark, overdue = P.OverdueOnDark,
-    incomeContainer = Color(0xFF123A26), expenseContainer = Color(0xFF451620),
-    primaryButton = P.RoyalViolet, onPrimaryButton = Color.White,
-    secondaryButton = Color(0xFF3D1A66), onSecondaryButton = Color(0xFFEFE2FF),
-    selectedNav = P.FoxOrange, accent = P.GoldenAmber, gold = P.GoldenAmber, border = P.DarkBorder,
+    incomeContainer = Color(0xFF15372A), expenseContainer = Color(0xFF451C1A),
+    primaryButton = P.Primary, onPrimaryButton = Color.White,
+    secondaryButton = Color(0xFF1F3F3A), onSecondaryButton = Color(0xFFCDEBE5),
+    selectedNav = P.DarkPrimaryText, accent = Color(0xFFE3B072), gold = P.Gold, border = P.DarkBorder,
     headerGradient = BrandBrush, onGradient = Color.White, isDark = true,
 )
 
@@ -157,16 +156,16 @@ private val AppTypography = Typography().let { t ->
 val AmountStyle = TextStyle(fontFamily = Inter, fontWeight = FontWeight.Bold, letterSpacing = 0.2.sp)
 
 private val AppShapes = Shapes(
-    extraSmall = RoundedCornerShape(8.dp), small = RoundedCornerShape(12.dp), medium = RoundedCornerShape(16.dp),
-    large = RoundedCornerShape(20.dp), extraLarge = RoundedCornerShape(24.dp),
+    extraSmall = RoundedCornerShape(8.dp), small = RoundedCornerShape(10.dp), medium = RoundedCornerShape(14.dp),
+    large = RoundedCornerShape(16.dp), extraLarge = RoundedCornerShape(20.dp),
 )
 
 /** Corner radii used across FinFox components (8 dp grid). */
 object FinFoxShapes {
-    val button = RoundedCornerShape(14.dp)
+    val button = RoundedCornerShape(12.dp)
     val input = RoundedCornerShape(12.dp)
-    val card = RoundedCornerShape(20.dp)
-    val heroCard = RoundedCornerShape(24.dp)
+    val card = RoundedCornerShape(16.dp)
+    val heroCard = RoundedCornerShape(20.dp)
     val chip = RoundedCornerShape(8.dp)
 }
 

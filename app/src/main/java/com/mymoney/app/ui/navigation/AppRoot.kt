@@ -174,7 +174,7 @@ private fun MainScaffold(vm: RootViewModel, locked: Boolean) {
                 NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
                     items.forEach { item ->
                         if (item.route == null) {
-                            // Centre "Add" action: a prominent purple button inside the bar.
+                            // Centre "Add" action: a prominent brand-coloured button inside the bar.
                             NavigationBarItem(
                                 selected = false, onClick = { nav.navigate(item.nav) },
                                 icon = {

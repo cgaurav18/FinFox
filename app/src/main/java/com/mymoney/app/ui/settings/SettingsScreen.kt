@@ -75,6 +75,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
     val sec by vm.security.collectAsStateWithLifecycle()
     val profile by vm.profile.collectAsStateWithLifecycle()
     val themeMode by vm.themeMode.collectAsStateWithLifecycle()
+    val payMode by vm.payMode.collectAsStateWithLifecycle()
     val fin = FinFoxTheme.colors
     val backupPrefs by vm.backupPrefs.collectAsStateWithLifecycle()
     val widgetPrefs by vm.widgetPrefs.collectAsStateWithLifecycle()
@@ -100,22 +101,21 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             item {
                 AppCard(contentPadding = 0.dp) {
                     listOf(
-                        Triple(ThemeMode.LIGHT, "Light Mode", "Bright background with white cards"),
-                        Triple(ThemeMode.DARK, "Dark Mode", "Deep purple background, easy on the eyes"),
-                        Triple(ThemeMode.SYSTEM, "Follow System", "Match your phone's theme setting"),
-                    ).forEach { (mode, title, sub) ->
-                        Row(
-                            Modifier.fillMaxWidth().selectable(selected = themeMode == mode, role = Role.RadioButton) { vm.setTheme(mode) }
-                                .padding(horizontal = 16.dp, vertical = 10.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(title, style = MaterialTheme.typography.bodyLarge)
-                                Text(sub, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            }
-                            RadioButton(selected = themeMode == mode, onClick = null)
-                        }
-                    }
+                        Triple(ThemeMode.LIGHT, "Light", "Soft off-white background"),
+                        Triple(ThemeMode.DARK, "Dark", "Calm dark background, easy on the eyes at night"),
+                        Triple(ThemeMode.SYSTEM, "Follow system", "Match your phone's theme setting"),
+                    ).forEach { (mode, title, sub) -> RadioRow(title, sub, themeMode == mode) { vm.setTheme(mode) } }
+                }
+            }
+            item { SectionHeader("Scan & Pay") }
+            item {
+                AppCard(contentPadding = 0.dp) {
+                    Text(
+                        "How FinFox hands a payment to your UPI app. If your app says \"payment not allowed\", choose \"Copy UPI ID & open app\".",
+                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 4.dp),
+                    )
+                    com.mymoney.app.data.repo.PayMode.entries.forEach { m -> RadioRow(m.title, m.subtitle, payMode == m) { vm.setPayMode(m) } }
                 }
             }
             item { SectionHeader("Cloud Backup") }
@@ -221,6 +221,20 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             confirmButton = { TextButton(onClick = { vm.eraseAll(); erase = false }, enabled = typed.trim() == "ERASE") { Text("Erase everything", color = MaterialTheme.colorScheme.error) } },
             dismissButton = { TextButton(onClick = { erase = false }) { Text("Cancel") } },
         )
+    }
+}
+
+@Composable
+private fun RadioRow(title: String, subtitle: String, selected: Boolean, onSelect: () -> Unit) {
+    Row(
+        Modifier.fillMaxWidth().selectable(selected = selected, role = Role.RadioButton, onClick = onSelect).padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge)
+            Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        RadioButton(selected = selected, onClick = null)
     }
 }
 

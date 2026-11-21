@@ -80,8 +80,8 @@ class NotificationDispatcher @Inject constructor(
     private val db: AppDatabase,
 ) {
     companion object {
-        /** FinFox Primary Purple accent for notification icons. */
-        private val BRAND_COLOR = com.mymoney.app.ui.theme.FinFoxPalette.PrimaryPurple.toArgb()
+        /** FinFox brand teal accent for notification icons. */
+        private val BRAND_COLOR = com.mymoney.app.ui.theme.FinFoxPalette.Primary.toArgb()
         const val CHANNEL_REMINDERS = "reminders"
         const val CHANNEL_BUDGET = "budget"
         const val CHANNEL_GOALS = "goals"

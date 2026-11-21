@@ -67,9 +67,9 @@ object WidgetColors {
     val transfer = ColorProvider(day = LightFinFoxColors.transfer, night = DarkFinFoxColors.transfer)
     val warning = ColorProvider(day = LightFinFoxColors.warning, night = DarkFinFoxColors.warning)
     val overdue = ColorProvider(day = LightFinFoxColors.overdue, night = DarkFinFoxColors.overdue)
-    /** Orange highlight (selected / emphasis), per the FinFox widget brief. */
-    val highlight = ColorProvider(day = FinFoxPalette.FoxOrange, night = FinFoxPalette.FoxOrange)
-    val brand = ColorProvider(day = FinFoxPalette.PrimaryPurple, night = FinFoxPalette.DarkPrimaryText)
+    /** Amber highlight (selected / emphasis). */
+    val highlight = ColorProvider(day = FinFoxPalette.Accent, night = FinFoxPalette.Accent)
+    val brand = ColorProvider(day = FinFoxPalette.Primary, night = FinFoxPalette.DarkPrimaryText)
 }
 
 @Composable
